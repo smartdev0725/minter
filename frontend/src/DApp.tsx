@@ -175,10 +175,15 @@ function DApp() {
       )}
 
       {contractInfo && connectState === ConnectState.CONNECTED && (
-        <p style={{ marginTop: 40 }}>
-          {contractInfo.name} has {contractInfo.totalSupply} total supply of
-          tokens deployed in {network} at address {contractAddress.Token}.
-        </p>
+        <div style={{ marginTop: 40 }}>
+          <h1>PHPM Minter</h1>
+
+          <input type="text" placeholder="PHPM Tokens To Mint" />
+          <br />
+          <input type="text" placeholder="Collateral (DAI)" />
+          <br />
+          <button onClick={() => {}}>Mint Tokens</button>
+        </div>
       )}
     </div>
   )
