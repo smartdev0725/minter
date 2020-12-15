@@ -133,7 +133,10 @@ describe('Deploy TokenFactory', async () => {
       ).toNumber()
     ).to.be.equal(beforeMint)
 
-    const tx = await phpmContract.mint(contractCreatorAddress.address, 100)
+    const tx = await phpmContract.mint(
+      contractCreatorAddress.address,
+      afterMint
+    )
 
     await tx.wait()
 
