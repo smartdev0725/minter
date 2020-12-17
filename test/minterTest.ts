@@ -1,13 +1,8 @@
-/**
- * TokenFactory usage: https://github.com/UMAprotocol/protocol/blob/a0eacc42b2a0fde78ea1cf6ae0ce3923a6654930/packages/core/test/financial-templates/TokenFactory.js
- */
-
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { BigNumber } from 'ethers'
-import { hexDataSlice } from 'ethers/lib/utils'
 
-describe('Deploy TokenFactory', async () => {
+describe('Generate a synthetic token with TokenFactory', async () => {
   // Helper Contracts
   let accounts, contractCreatorAddress, otherUserAddress, userAddress, contract
 
@@ -18,6 +13,7 @@ describe('Deploy TokenFactory', async () => {
   let tokenFactory
   let phpmTokenAddress
   let collateralAddress
+  let phpmContract
 
   // PHPM Token Details
   const tokenDetails = {
@@ -33,6 +29,8 @@ describe('Deploy TokenFactory', async () => {
     decimals: '18'
   }
 
+  const collateralMinted = 3333
+
   before(async function () {
     // get an instance of TokenFactory
     contract = await ethers.getContractFactory('TokenFactory')
@@ -43,39 +41,7 @@ describe('Deploy TokenFactory', async () => {
     userAddress = accounts[1]
     otherUserAddress = accounts[2]
 
-    // Deploy Collateral Dai Contract
-    // Reference ERC20 contract
-    console.log('Contract Creator address: ', contractCreatorAddress.address)
-    tokenFactory = await contract.deploy()
-
-    // deploy token factory contract in blockchain
-    await tokenFactory.deployed()
-
-    console.log('Token Factory Address: ', tokenFactory.address)
-
-    // create token
-    const tx = await tokenFactory.createToken(
-      tokenDetails.name,
-      tokenDetails.symbol,
-      tokenDetails.decimals,
-      { from: contractCreatorAddress.address }
-    )
-
-    // check transaction receipt to obtain token's address
-    const txReceipt = await tx.wait()
-    const txReceiptEvent = txReceipt.events.pop()
-
-    // store token address
-    phpmTokenAddress = txReceiptEvent.address
-    console.log('PHPM Address: ', phpmTokenAddress)
-
-    // // now we can do stuff w PHPM
-    // assert.isNotNull(phpToken, 'beforeEach: phpToken is null')
-  })
-
-  it('Creates a collateral token (DAI) and mints 3333 DAI', async () => {
-    const collateralMinted = 3333
-
+    // Deploy and mint Collateral Dai Contract
     // Get a reference of ERC20 Contract Factory
     const DaiContract = await ethers.getContractFactory('ExpandedERC20')
 
@@ -85,7 +51,6 @@ describe('Deploy TokenFactory', async () => {
       collateralTokenDetails.symbol,
       collateralTokenDetails.decimals
     )
-
     // Wait for dai to be deploy
     await dai.deployed()
 
@@ -105,15 +70,32 @@ describe('Deploy TokenFactory', async () => {
 
     // test if values are equal
     expect(daiBalance).to.equal(collateralMinted)
+
+    // Reference ERC20 contract
+    tokenFactory = await contract.deploy()
+
+    // deploy token factory contract in blockchain
+    await tokenFactory.deployed()
+
+    // create token
+    const tx = await tokenFactory.createToken(
+      tokenDetails.name,
+      tokenDetails.symbol,
+      tokenDetails.decimals,
+      { from: contractCreatorAddress.address }
+    )
+
+    // check transaction receipt to obtain token's address
+    const txReceipt = await tx.wait()
+    const txReceiptEvent = txReceipt.events.pop()
+
+    // store token address
+    phpmTokenAddress = txReceiptEvent.address
   })
 
-  it('mint 100 PHPM by contractCreator ', async () => {
-    // test values
-    let afterMint = 100
-    let beforeMint = 0
-
+  it('creates the phpm contract successfully', async () => {
     // Make an instance of the token deployed by the token factory
-    const phpmContract = await ethers.getContractAt(
+    phpmContract = await ethers.getContractAt(
       'ExpandedERC20',
       phpmTokenAddress,
       contractCreatorAddress.address
@@ -125,6 +107,12 @@ describe('Deploy TokenFactory', async () => {
     expect((await phpmContract.decimals()).toString()).to.be.equal(
       tokenDetails.decimals
     )
+  })
+
+  it('mints 100 PHPM ', async () => {
+    // test values
+    let afterMint = 100
+    let beforeMint = 0
 
     // Check if  balance is zero before minting
     expect(
@@ -138,9 +126,8 @@ describe('Deploy TokenFactory', async () => {
       afterMint
     )
 
+    // wait for the transaction to be processed/mined
     await tx.wait()
-
-    //console.log(txReceipt)
 
     // CHeck if mint is successful
     expect(
@@ -150,19 +137,43 @@ describe('Deploy TokenFactory', async () => {
     ).to.be.equal(afterMint)
   })
 
-  // it("Can take DAI deposit and mint PHPM", async () => {
+  it('deposits collateral in minter contract', async () => {
+    // TODO: Working in progress, only return event for now and doesnt do collateral deposit yet
+    const depositContract = await ethers.getContractFactory('Minter')
 
-  // });
+    const deployedDepositContract = await depositContract.deploy()
 
-  // it("PHPM can be redeemed for DAI by contractCreator", async () => {
+    await deployedDepositContract.deployed()
 
-  // });
+    //console.log('Deposit Contract address: ', deployedDepositContract.address)
 
-  // it("New PHPM cannot be minted by non contractCreator", async () => {
+    await deployedDepositContract.initialize()
+    const deposit = await deployedDepositContract.deposit(1000)
+    const txReceipt = await deposit.wait()
 
-  // });
+    //console.log(txReceipt)
 
-  // it("New PHPM cannot be burnt by non contractCreator", async () => {
+    expect(txReceipt.events[0].event === 'Deposit')
 
-  // });
+    //console.log('event: ', txReceiptEvent)
+    //  console.log(
+    //    ethers.utils.defaultAbiCoder.decode(['string'], txReceiptEvent.data)
+    //  )
+    //  const eventTopic = deployedDepositContract.filters.Deposit()
+
+    // console.log(ethers.utils.hexlify(eventTopic.topics))
+  })
 })
+
+describe('Can transfer synth to recipient wallet', () => {})
+
+/**
+ * 
+  beforeEach(async () => {})
+  describe('Synthetic is minted', () => {}) -- DONE
+  describe('Can accept DAI collateral', () => {}) -- DONE
+  describe('Can redeem synth for DAI collateral', () => {})
+  describe('Can earn HALO upon synth mint', () => {})
+  describe('Can earn HALO on transfer to whitelisted AMM address', () => {})
+})
+ */

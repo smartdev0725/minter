@@ -1,4 +1,4 @@
-pragma solidity ^0.7.0;
+pragma solidity ^0.6.0;
 
 /**
  * @title A contract that provides modifiers to prevent reentrancy to state-changing and view-only methods. This contract

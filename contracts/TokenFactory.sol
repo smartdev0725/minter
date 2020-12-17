@@ -1,4 +1,4 @@
-pragma solidity ^0.7.0;
+pragma solidity ^0.6.0;
 
 import './SyntheticToken.sol';
 import './interfaces/ExpandedIERC20.sol';
@@ -30,6 +30,7 @@ contract TokenFactory is Lockable {
     mintableToken.addMinter(msg.sender);
     mintableToken.addBurner(msg.sender);
     mintableToken.resetOwner(msg.sender);
+    // TODO: Change this to the minter contract ?
     newToken = ExpandedIERC20(address(mintableToken));
   }
 }
