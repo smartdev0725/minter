@@ -2,7 +2,7 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { BigNumber } from 'ethers'
 
-describe('Generate a synthetic token with TokenFactory', async () => {
+describe('Synthetic PHPM is minted', async () => {
   // Helper Contracts
   let accounts, contractCreatorAddress, otherUserAddress, userAddress, contract
 
@@ -93,75 +93,83 @@ describe('Generate a synthetic token with TokenFactory', async () => {
     phpmTokenAddress = txReceiptEvent.address
   })
 
-  it('creates the phpm contract successfully', async () => {
+  describe('creates the PHPM contract', async () => {
     // Make an instance of the token deployed by the token factory
-    phpmContract = await ethers.getContractAt(
-      'ExpandedERC20',
-      phpmTokenAddress,
-      contractCreatorAddress.address
-    )
+    it('gets the contract', async () => {
+      phpmContract = await ethers.getContractAt(
+        'ExpandedERC20',
+        phpmTokenAddress,
+        contractCreatorAddress.address
+      )
 
-    // Check if created token is equal to token being called
-    expect(await phpmContract.name()).to.be.equal(tokenDetails.name)
-    expect(await phpmContract.symbol()).to.be.equal(tokenDetails.symbol)
-    expect((await phpmContract.decimals()).toString()).to.be.equal(
-      tokenDetails.decimals
-    )
-  })
+      // Check if created token is equal to token being called
+      expect(await phpmContract.name()).to.be.equal(tokenDetails.name)
+      expect(await phpmContract.symbol()).to.be.equal(tokenDetails.symbol)
+      expect((await phpmContract.decimals()).toString()).to.be.equal(
+        tokenDetails.decimals
+      )
+    })
 
-  it('mints 100 PHPM ', async () => {
-    // test values
-    let afterMint = 100
-    let beforeMint = 0
+    describe('Synthetic token is minted', async () => {
+      describe('Can accept DAI collateral', async () => {
+        // TODO: Working in progress, only return event for now and doesnt do collateral deposit yet
+        let depositContract, deployedDepositContract
 
-    // Check if  balance is zero before minting
-    expect(
-      BigNumber.from(
-        await phpmContract.balanceOf(contractCreatorAddress.address)
-      ).toNumber()
-    ).to.be.equal(beforeMint)
+        it('deploys the minter contract', async () => {
+          depositContract = await ethers.getContractFactory('Minter')
+          deployedDepositContract = await depositContract.deploy()
 
-    const tx = await phpmContract.mint(
-      contractCreatorAddress.address,
-      afterMint
-    )
+          const deploymentTx = await deployedDepositContract.deployed()
+          expect(await deploymentTx.resolvedAddress).to.be.not.null
+        })
 
-    // wait for the transaction to be processed/mined
-    await tx.wait()
+        it('initialize the minterContract ', async () => {
+          const intializeTx = await deployedDepositContract.initialize()
 
-    // CHeck if mint is successful
-    expect(
-      BigNumber.from(
-        await phpmContract.balanceOf(contractCreatorAddress.address)
-      ).toNumber()
-    ).to.be.equal(afterMint)
-  })
+          expect(intializeTx.blockNumber).to.be.not.null
+        })
 
-  it('deposits collateral in minter contract', async () => {
-    // TODO: Working in progress, only return event for now and doesnt do collateral deposit yet
-    const depositContract = await ethers.getContractFactory('Minter')
+        it('deposit the collateral in the deposit contract', async () => {
+          const deposit = await deployedDepositContract.deposit(1000)
+          const txReceipt = await deposit.wait()
 
-    const deployedDepositContract = await depositContract.deploy()
+          expect(txReceipt.events[0].event === 'Deposit')
+        })
+      })
+      describe('it mints synthetic token', async () => {
+        // test values
+        let afterMint = 100
+        let beforeMint = 0
 
-    await deployedDepositContract.deployed()
+        it(`has a balance of ${beforeMint}`, async () => {
+          // Check if  balance is zero before minting
+          expect(
+            BigNumber.from(
+              await phpmContract.balanceOf(contractCreatorAddress.address)
+            ).toNumber()
+          ).to.be.equal(beforeMint)
+        })
 
-    //console.log('Deposit Contract address: ', deployedDepositContract.address)
+        it(`mints ${afterMint}`, async () => {
+          const tx = await phpmContract.mint(
+            contractCreatorAddress.address,
+            afterMint
+          )
+          // wait for the transaction to be processed/mined
+          await tx.wait()
+          // TODO: Add Mint event
+        })
 
-    await deployedDepositContract.initialize()
-    const deposit = await deployedDepositContract.deposit(1000)
-    const txReceipt = await deposit.wait()
-
-    //console.log(txReceipt)
-
-    expect(txReceipt.events[0].event === 'Deposit')
-
-    //console.log('event: ', txReceiptEvent)
-    //  console.log(
-    //    ethers.utils.defaultAbiCoder.decode(['string'], txReceiptEvent.data)
-    //  )
-    //  const eventTopic = deployedDepositContract.filters.Deposit()
-
-    // console.log(ethers.utils.hexlify(eventTopic.topics))
+        it(`has an account balance of ${afterMint}`, async () => {
+          // CHeck if mint is successful
+          expect(
+            BigNumber.from(
+              await phpmContract.balanceOf(contractCreatorAddress.address)
+            ).toNumber()
+          ).to.be.equal(afterMint)
+        })
+      })
+    })
   })
 })
 
@@ -170,8 +178,7 @@ describe('Can transfer synth to recipient wallet', () => {})
 /**
  * 
   beforeEach(async () => {})
-  describe('Synthetic is minted', () => {}) -- DONE
-  describe('Can accept DAI collateral', () => {}) -- DONE
+  describe('Synthetic is minted', () => {}) 
   describe('Can redeem synth for DAI collateral', () => {})
   describe('Can earn HALO upon synth mint', () => {})
   describe('Can earn HALO on transfer to whitelisted AMM address', () => {})
