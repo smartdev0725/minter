@@ -7,7 +7,6 @@ import { BigNumber, Contract } from 'ethers'
  * Assert vs expect vs should: https://stackoverflow.com/questions/21396524/what-is-the-difference-between-assert-expect-and-should-in-chai#21405128
  */
 
-// describe('Can mint synthetic', async () => {
 // Helper Contracts
 let accounts,
   contractCreatorAddress,
