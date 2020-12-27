@@ -5,7 +5,9 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-wit
 
 describe('Can mint synthetic', () => {
   beforeEach(async () => {})
-  describe('Can accept DAI collateral', () => {})
+  describe('Can accept DAI collateral', () => {
+    it('', () => {})
+  })
   describe('Synthetic is minted', () => {})
   describe('Can transfer synth to recipient wallet', () => {})
   describe('Can redeem synth for DAI collateral', () => {})
