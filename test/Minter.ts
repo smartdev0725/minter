@@ -1,7 +1,6 @@
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
-// import {  } from '../typechain/Token'
 
 describe('Can mint synthetic', () => {
   beforeEach(async () => {})
