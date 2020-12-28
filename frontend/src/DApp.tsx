@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ethers, utils } from 'ethers'
-import TokenArtifact from './contracts/Token.json'
+import TokenFactoryArtifact from './contracts/TokenFactory.json'
 import contractAddress from './contracts/contract-address.json'
-import { Token as TokenContract } from './typechain/Token'
+import { TokenFactory as TokenFactoryContract } from './typechain/TokenFactory'
 import { ConnectState, Networks, NetworkNames } from './types/enums'
 import { ContractInfo } from './types/types'
 
@@ -16,7 +16,9 @@ function DApp() {
   const [connectState, setConnectState] = useState<ConnectState>(
     ConnectState.DISCONNECTED
   )
-  const [contract, setContract] = useState<TokenContract | undefined>(undefined)
+  const [contract, setContract] = useState<TokenFactoryContract | undefined>(
+    undefined
+  )
   const [contractInfo, setContractInfo] = useState<ContractInfo | undefined>(
     undefined
   )
@@ -57,14 +59,14 @@ function DApp() {
     const provider = new ethers.providers.Web3Provider(window.ethereum)
 
     // 2 - Call the contract token
-    const tokenContract = new ethers.Contract(
+    const tokenFactoryContract = new ethers.Contract(
       contractAddress.Token,
-      TokenArtifact.abi,
+      TokenFactoryArtifact.abi,
       provider.getSigner()
-    ) as TokenContract
+    ) as TokenFactoryContract
 
     // 3 - Set contract data in state
-    setContract(tokenContract)
+    setContract(tokenFactoryContract)
   }
 
   const isContractDeployed = (contractByteCode: string) => {

@@ -34,11 +34,11 @@ const saveFrontendFiles = token => {
     JSON.stringify({ Token: token.address }, undefined, 2)
   )
 
-  const TokenArtifact = artifacts.readArtifactSync('Token')
+  const TokenFactoryArtifact = artifacts.readArtifactSync('TokenFactory')
 
   fs.writeFileSync(
-    contractsDir + '/Token.json',
-    JSON.stringify(TokenArtifact, null, 2)
+    contractsDir + '/TokenFactory.json',
+    JSON.stringify(TokenFactoryArtifact, null, 2)
   )
 
   // Copy typechain to /frontend/src/typechain directory
