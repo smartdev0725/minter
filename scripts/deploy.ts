@@ -8,11 +8,11 @@ const main = async () => {
   console.log('Deploying contracts with the account:', deployer.address)
   console.log('Account balance:', (await deployer.getBalance()).toString())
 
-  const Token = await ethers.getContractFactory('Token')
-  const token = await Token.deploy()
+  const TokenFactory = await ethers.getContractFactory('TokenFactory')
+  const tokenFactory = await TokenFactory.deploy()
 
-  console.log('Token address:', token.address)
-  saveFrontendFiles(token)
+  console.log('Token address:', tokenFactory.address)
+  saveFrontendFiles(tokenFactory)
 }
 
 const saveFrontendFiles = token => {
