@@ -19,7 +19,6 @@ let accounts,
   otherUserAddress: string,
   userAddress: string,
   collateralAddress: string,
-  phmTokenAddress: string,
   expandedERC20LabelString: string = 'ExpandedERC20',
   tokenFactoryLabelString: string = 'TokenFactory',
   phmContractLabelString: string = 'PHMContract', // this one does not have an artifact to reference since auto deployed by TokenFactory
@@ -112,15 +111,12 @@ before(async () => {
     const txReceipt = await tx.wait()
     const txReceiptEvent = txReceipt.events.pop()
 
-    // store token address
-    phmTokenAddress = txReceiptEvent.address
-
     /**
      * get contract prev deployed by tokenFactory using address and account[0] as signer
      */
     phmContract = await ethers.getContractAt(
       expandedERC20LabelString,
-      phmTokenAddress,
+      txReceiptEvent.address,
       accounts[0]
     )
 
