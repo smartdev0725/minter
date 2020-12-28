@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
-import { BigNumber, Contract } from 'ethers'
+import { BigNumber, Contract, ContractFactory } from 'ethers'
 
 /**
  * Assert vs expect vs should: https://stackoverflow.com/questions/21396524/what-is-the-difference-between-assert-expect-and-should-in-chai#21405128
@@ -9,19 +9,22 @@ import { BigNumber, Contract } from 'ethers'
 
 // Helper Contracts
 let accounts,
-  contractCreatorAddress,
-  otherUserAddress,
-  userAddress,
-  tokenFactoryContract
+  otherUserAddress: string,
+  userAddress: string,
+  collateralAddress: string,
+  phmTokenAddress: string
+
+let contractCreatorAccount: SignerWithAddress
 
 // Constants
 // const priceFeedIdentifier = utf8ToHex('ETH/USD') // need this for UMA minting
 
 // Contract variables
-let tokenFactory: Contract
-let phmTokenAddress: string
-let collateralAddress: string
-let phmContract: Contract
+let tokenFactory: Contract,
+  phmContract: Contract,
+  minterContract: Contract,
+  daiContract: Contract
+let tokenFactoryContract: ContractFactory
 
 // PHPM Token Details
 const tokenDetails = {
@@ -42,7 +45,7 @@ const collateralToMint = 3333
 before(async () => {
   // define signers
   accounts = await ethers.getSigners()
-  contractCreatorAddress = accounts[0]
+  contractCreatorAccount = accounts[0]
   userAddress = accounts[1]
   otherUserAddress = accounts[2]
 
@@ -65,21 +68,21 @@ before(async () => {
     collateralAddress = dai.address
 
     // add address as minter - contractCreatorAddress not automatically added as minter for some reason
-    await dai.addMinter(contractCreatorAddress.address)
+    await dai.addMinter(contractCreatorAccount.address)
 
     // mint token
-    await dai.mint(contractCreatorAddress.address, collateralToMint)
+    await dai.mint(contractCreatorAccount.address, collateralToMint)
 
     // get balance
     const daiBalance = BigNumber.from(
-      await dai.balanceOf(contractCreatorAddress.address)
+      await dai.balanceOf(contractCreatorAccount.address)
     ).toNumber()
 
     // test if values are equal
     expect(daiBalance).to.be.equal(
       collateralToMint,
       'contract creator ' +
-        contractCreatorAddress.address +
+        contractCreatorAccount.address +
         ' does not have expected balance of ' +
         collateralToMint
     )
@@ -106,7 +109,7 @@ before(async () => {
       tokenDetails.name,
       tokenDetails.symbol,
       tokenDetails.decimals,
-      { from: contractCreatorAddress.address }
+      { from: contractCreatorAccount.address }
     )
 
     // check transaction receipt to obtain token's address
