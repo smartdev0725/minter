@@ -140,12 +140,13 @@ before(async () => {
       'token decimals not as expected'
     )
   })
+
+  it('Can deploy and get ref to Minter Contract', async () => {})
 })
 beforeEach(async () => {})
-describe('Can accept DAI collateral', () => {
-  it('', () => {})
+describe('Can accept DAI collateral', async () => {
+  it('Can deposit DAI into Minter and receive PHM back', async () => {})
 })
-describe('Synthetic is minted', () => {})
 describe('Can transfer synth to recipient wallet', () => {})
 describe('Can redeem synth for DAI collateral', () => {})
 describe('Can earn HALO upon synth mint', () => {})
