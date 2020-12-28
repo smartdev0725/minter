@@ -19,9 +19,9 @@ let accounts,
 
 // Contract variables
 let tokenFactory: Contract
-let phpmTokenAddress: string
+let phmTokenAddress: string
 let collateralAddress: string
-let phpmContract: Contract
+let phmContract: Contract
 
 // PHPM Token Details
 const tokenDetails = {
@@ -37,7 +37,7 @@ const collateralTokenDetails = {
   decimals: '18'
 }
 
-const collateralMinted = 3333
+const collateralToMint = 3333
 
 before(async () => {
   // define signers
@@ -68,7 +68,7 @@ before(async () => {
     await dai.addMinter(contractCreatorAddress.address)
 
     // mint token
-    await dai.mint(contractCreatorAddress.address, collateralMinted)
+    await dai.mint(contractCreatorAddress.address, collateralToMint)
 
     // get balance
     const daiBalance = BigNumber.from(
@@ -77,11 +77,11 @@ before(async () => {
 
     // test if values are equal
     expect(daiBalance).to.be.equal(
-      collateralMinted,
+      collateralToMint,
       'contract creator ' +
         contractCreatorAddress.address +
         ' does not have expected balance of ' +
-        collateralMinted
+        collateralToMint
     )
   })
 
@@ -118,24 +118,24 @@ before(async () => {
     const txReceiptEvent = txReceipt.events.pop()
 
     // store token address
-    phpmTokenAddress = txReceiptEvent.address
+    phmTokenAddress = txReceiptEvent.address
 
-    phpmContract = await ethers.getContractAt(
+    phmContract = await ethers.getContractAt(
       'ExpandedERC20',
-      phpmTokenAddress,
+      phmTokenAddress,
       accounts[0]
     )
 
     // Check if created token is equal to token being called
-    expect(await phpmContract.name()).to.be.equal(
+    expect(await phmContract.name()).to.be.equal(
       tokenDetails.name,
       'token name not as expected'
     )
-    expect(await phpmContract.symbol()).to.be.equal(
+    expect(await phmContract.symbol()).to.be.equal(
       tokenDetails.symbol,
       'token symbol not as expected'
     )
-    expect((await phpmContract.decimals()).toString()).to.be.equal(
+    expect((await phmContract.decimals()).toString()).to.be.equal(
       tokenDetails.decimals,
       'token decimals not as expected'
     )
