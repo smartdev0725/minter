@@ -1,8 +1,12 @@
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
-import { BigNumber, Contract, ContractFactory } from 'ethers'
-import { deployContract, isValidContract, isValidERC20 } from './util/Contract'
+import { BigNumber, Contract } from 'ethers'
+import {
+  deployContract,
+  isValidContract,
+  isValidERC20
+} from './util/DeployContract'
 
 /**
  * Assert vs expect vs should:
@@ -121,7 +125,7 @@ before(async () => {
     )
 
     // check if valid Contract obj
-    await isValidContract(phmContract, expandedERC20LabelString)
+    await isValidContract(phmContract, 'expandedERC20LabelString')
     // check if valid ERC20 Contract obj
     await isValidERC20(phmContractLabelString, phmContract, tokenDetails)
   })

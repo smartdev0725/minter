@@ -1,5 +1,5 @@
 /**
- * * Our pattern for deploying and expect-ing Contract objects is as follows:
+ * * Our pattern for deploying and expect-ing ethers objects is as follows:
  * 1. Declare ContractFactory object
  * 2. Declare Contract object
  * 3. 'Deploy and get reference test' by;
@@ -13,8 +13,7 @@
 
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
-import { BigNumber, Contract, ContractFactory } from 'ethers'
+import { Contract, ContractFactory } from 'ethers'
 import { TokenDetails } from '../types/types'
 import { exception } from 'console'
 
@@ -27,7 +26,14 @@ const deployContract = async (
   contractName: string,
   tokenDetails?: TokenDetails
 ): Promise<Contract> => {
+  expect(contractName.length).to.be.greaterThan(
+    0,
+    'contractName param must not be an empty string'
+  )
+
+  // a running validity flag
   let isValid = false
+
   // create contract factory
   let contractFactory = await ethers.getContractFactory(contractName)
 
@@ -67,11 +73,23 @@ const deployContract = async (
   else throw exception(contractName + ' is not valid')
 }
 
+/**
+ *Checks that a contract is indeed a contract deployed with the name, symbol and decimals ERC20 ctor arguments
+ * @param contractName The name of the contract artifact
+ * @param contract The predeployed ethers.Contract object
+ * @param tokenDetails the array of type TokenDetails containing the smart contract constructor argument
+ */
 const isValidERC20 = async (
   contractName: string,
   contract: Contract,
   tokenDetails: TokenDetails
 ): Promise<boolean> => {
+  expect(contractName.length).to.be.greaterThan(
+    0,
+    'contractName param must not be an empty string'
+  )
+  expect(contract).to.not.be.null
+  expect(tokenDetails).to.not.be.null
   expect(await contract.name()).to.be.equal(
     tokenDetails.name,
     contractName + ' name not as expected'
@@ -88,15 +106,21 @@ const isValidERC20 = async (
   return true
 }
 
+/**
+ * check that contract is indeed of type Contract
+ * https://docs.ethers.io/v5/api/contract/contract/#Contract--properties
+ * @param contract The predeployed ethers.Contract object
+ * @param contractName The name of the contract artifact
+ */
 const isValidContract = async (
   contract: Contract,
   contractName: string
 ): Promise<boolean> => {
-  /**
-   * check that contract is indeed of type Contract
-   * https://docs.ethers.io/v5/api/contract/contract/#Contract--properties
-   */
   expect(contract).to.not.be.null
+  expect(contractName.length).to.be.greaterThan(
+    0,
+    'contractName param must not be an empty string'
+  )
   expect(contract).to.have.property('address')
   expect(contract).to.have.property('interface')
   expect(contract).to.have.property('provider')
@@ -111,13 +135,14 @@ const isValidContract = async (
   return true
 }
 
+/**
+ * check that contractFactory is indeed of type ContractFactory
+ * https://docs.ethers.io/v5/api/contract/contract-factory/
+ * @param contractFactory the pre instantiated ContractFactory object
+ */
 const isValidContractFactory = async (
   contractFactory: ContractFactory
 ): Promise<boolean> => {
-  /**
-   * check that contractFactory is indeed of type ContractFactory
-   * https://docs.ethers.io/v5/api/contract/contract-factory/
-   */
   expect(contractFactory).to.not.be.null
   expect(contractFactory).to.have.property('bytecode')
   expect(contractFactory).to.have.property('interface')
