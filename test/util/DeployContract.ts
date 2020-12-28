@@ -41,7 +41,7 @@ const deployContract = async (
   isValid = await isValidContractFactory(contractFactory)
 
   /**
-   * Deploy (with constructors, ff tokenDetails param was passed)
+   * Deploy (with constructors, if tokenDetails param was passed)
    * not using Contract.deployed() cause .deploy() allows for smart contract ctor arguments
    * https://github.com/ethers-io/ethers.js/blob/master/packages/contracts/src.ts/index.ts#L762
    *  */

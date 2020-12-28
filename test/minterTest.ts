@@ -21,7 +21,8 @@ let accounts,
   collateralAddress: string,
   expandedERC20LabelString: string = 'ExpandedERC20',
   tokenFactoryLabelString: string = 'TokenFactory',
-  phmContractLabelString: string = 'PHMContract', // this one does not have an artifact to reference since auto deployed by TokenFactory
+  // name not as impt, since does not have an artifact to reference since auto deployed by TokenFactory
+  phmContractLabelString: string = 'PHMContract',
   minterContractLabelString: string = 'Minter'
 
 // account that signs deploy txs
