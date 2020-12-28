@@ -30,6 +30,7 @@ contract TokenFactory is Lockable {
     mintableToken.addMinter(msg.sender);
     mintableToken.addBurner(msg.sender);
     mintableToken.resetOwner(msg.sender);
+    // TODO: Change this to the minter contract ?
     newToken = ExpandedIERC20(address(mintableToken));
   }
 }
