@@ -26,7 +26,7 @@ let phmContract: Contract
 // PHPM Token Details
 const tokenDetails = {
   name: 'Mochi PH Token',
-  symbol: 'PHPM',
+  symbol: 'PHM',
   decimals: '18'
 }
 
@@ -92,10 +92,6 @@ before(async () => {
 
     // Reference ERC20 contract
     tokenFactory = await tokenFactoryContract.deploy()
-
-    // deploy token factory contract in blockchain
-    // let obj = await tokenFactory.deployed()
-    // console.log('tokenFactory same as obj?', tokenFactory === obj)
 
     // check that token factory is not null
     expect(tokenFactory).to.not.be.null
