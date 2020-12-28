@@ -95,6 +95,9 @@ before(async () => {
     expect(daiContract).to.have.property('address')
     expect(daiContract).to.have.property('interface')
     expect(daiContract).to.have.property('provider')
+    expect(daiContract).to.have.property('signer')
+
+    // we only check that address is of a certain type because types specific to ethers lib don't seem to be recognised by Chai from the get go
     expect(daiContract.address).to.be.a(
       'string',
       'daiContract.address not of expected type string'
@@ -164,6 +167,9 @@ before(async () => {
     expect(tokenFactoryContract).to.have.property('address')
     expect(tokenFactoryContract).to.have.property('interface')
     expect(tokenFactoryContract).to.have.property('provider')
+    expect(tokenFactoryContract).to.have.property('signer')
+
+    // we only check that address is of a certain type because types specific to ethers lib don't seem to be recognised by Chai from the get go
     expect(tokenFactoryContract.address).to.be.a(
       'string',
       'tokenFactoryContract.address not of expected type string'
@@ -205,6 +211,9 @@ before(async () => {
     expect(phmContract).to.have.property('address')
     expect(phmContract).to.have.property('interface')
     expect(phmContract).to.have.property('provider')
+    expect(phmContract).to.have.property('signer')
+
+    // we only check that address is of a certain type because types specific to ethers lib don't seem to be recognised by Chai from the get go
     expect(phmContract.address).to.be.a(
       'string',
       'phmContract.address not of expected type string'
@@ -248,6 +257,9 @@ before(async () => {
     expect(minterContract).to.have.property('address')
     expect(minterContract).to.have.property('interface')
     expect(minterContract).to.have.property('provider')
+    expect(minterContract).to.have.property('signer')
+
+    // we only check that address is of a certain type because types specific to ethers lib don't seem to be recognised by Chai from the get go
     expect(minterContract.address).to.be.a(
       'string',
       'minterContract.address not of expected type string'
