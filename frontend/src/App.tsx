@@ -1,8 +1,9 @@
 import Web3Modal from 'web3modal'
 import { Web3Provider } from '@ethersproject/providers'
 import { formatEther } from 'ethers/lib/utils'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import WalletConnectProvider from '@walletconnect/web3-provider'
+import { Box, Button, Container, Paper, Typography } from '@material-ui/core'
 
 const web3Modal = new Web3Modal({
   cacheProvider: true,
@@ -79,9 +80,53 @@ const App = () => {
   }
 
   return (
-    <div>
-      <button onClick={connect}>Connect</button>
-    </div>
+    <Container maxWidth="sm">
+      <Box my={3}>
+        <Typography variant="h4">HaloDAO Minter Demo</Typography>
+
+        <Box my={3}>
+          <Paper>
+            <Box p={2}>
+              <Typography variant="caption">CURRENT NETWORK</Typography>
+              <Typography>Unknown</Typography>
+            </Box>
+          </Paper>
+        </Box>
+
+        <Box my={3}>
+          <Paper>
+            <Box p={2}>
+              <Typography variant="caption">WALLET</Typography>
+              <Box textAlign="center">
+                <Button variant="contained" color="primary" onClick={connect}>
+                  Connect
+                </Button>
+              </Box>
+            </Box>
+          </Paper>
+        </Box>
+
+        <Box my={3}>
+          <Paper>
+            <Box p={2}>
+              <Typography variant="caption">MINTER</Typography>
+              <Box mt={2} textAlign="center">
+                <Typography variant="subtitle2">Total PHM supply</Typography>
+                <Typography variant="h2">1000</Typography>
+              </Box>
+              <Box mt={3} textAlign="center">
+                <Button variant="contained" color="primary">
+                  Deposit
+                </Button>
+                <Box mt={1}>
+                  <Typography variant="caption">1 DAI = 48 PHM</Typography>
+                </Box>
+              </Box>
+            </Box>
+          </Paper>
+        </Box>
+      </Box>
+    </Container>
   )
 }
 
