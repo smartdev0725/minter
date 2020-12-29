@@ -19,13 +19,16 @@ task('accounts', 'Prints the list of accounts', async (args, hre) => {
 })
 
 const config: HardhatUserConfig = {
-  solidity: '0.6.0',
+  solidity: '0.7.0',
   networks: {
     kovan: {
       url: `https://kovan.infura.io/v3/${INFURA_PROJECT_ID}`,
       accounts: {
         mnemonic: MNEMONIC_SEED
       }
+    },
+    hardhat: {
+      chainId: 99
     }
   }
 }
