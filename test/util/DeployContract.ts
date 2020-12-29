@@ -18,7 +18,7 @@ import { TokenDetails } from '../types/types'
 import { exception } from 'console'
 
 /**
- *
+ * deploys a contract for unit testing and validates every step of the deployment tx
  * @param contractName The name of the contract artifact
  * @param tokenDetails optional argument: the array of type TokenDetails containing the smart contract constructor argument
  */
