@@ -132,10 +132,24 @@ before(async () => {
   })
 })
 beforeEach(async () => {})
-describe('Can accept DAI collateral', async () => {
-  it('Can deposit DAI into Minter and receive PHM back', async () => {})
+
+/**
+ * TODO: test util funcs for events emitted after every state changing tx (Transfer, Mint, Burn, etc)
+ * TODO: these tests are still an initial outline, can actually break these down into smaller fixtures
+ * TODO: Need to think of every success/failure scenario
+ */
+describe('Can accept collateral and mint synthetic', async () => {
+  it('sending collateral ERC20 to deposit func should mint PHM, return PHM to msg.sender, and return true', async () => {})
+  it('sending non collateral ERC20 to deposit func should not mint PHM, not return PHM to msg.sender and return error', async () => {})
 })
 describe('Can transfer synth to recipient wallet', () => {})
-describe('Can redeem synth for DAI collateral', () => {})
+describe('Can redeem synth for original ERC20 collateral', () => {
+  it(
+    'sending synth and calling redeem func should burn synth, return ERC20 collateral to msg.sender, and return true'
+  )
+  it(
+    'sending invalid synth and calling redeem func should not burn synth, not return ERC20 collateral to msg.sender, and return err'
+  )
+})
 describe('Can earn HALO upon synth mint', () => {})
 describe('Can earn HALO on transfer to whitelisted AMM address', () => {})
