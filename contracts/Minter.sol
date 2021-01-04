@@ -16,13 +16,17 @@ contract Minter is Lockable {
   // The collateral currency used to back the positions in this contract.
   IERC20 public collateralCurrency;
 
+// model for the collateral balance per address
+  struct CollateralBalance {
+      address collateralAddress;
+      uint256 balance;
+  }
+
   // stores the diff collateral types that can mint synthetics
   address[] private collateralAddresses;
 
-  struct UserRecord {
-      address userAddress;
-      mapping(address => uint256) collateralDeposit;
-  }
+  // stores the user deposits per collateral address
+  mapping(address => CollateralBalance) collateralBalances;
 
   /****************************************
    *                EVENTS                *
@@ -72,7 +76,7 @@ contract Minter is Lockable {
     require(_collateralAmount > 0, 'Invalid collateral amount');
 
     // check if collateralAddress is part of 'whitelisted' collateral types
-    require(collateralAddresses[_collateralAddress.exsts], 'collateral address does not exist')
+    // check if users balance is enough for collateral adddress type (ERC20 balance)
 
     // TODO: 2 - Move collateral currency from sender to contract. (from erc20 safe math)
     // collateralCurrency.safeTransferFrom(
@@ -81,8 +85,11 @@ contract Minter is Lockable {
     //   _collateralAmount
     // );
 
+    // collateralBalances[msg.sender].collateralAddress = _collateralAddress
+    // collateralBalances[msg.sender].balance = _collateralAmount
+
     // 3 - Emit successful deposit event
-    emit DepositedCollateral(msg.sender, _collateralAmount);
+    emit DepositedCollateral(msg.sender, _collateralAmount, _collateralAddress);
 
     // TODO: 4 - Calculate conversion rate + fees
 
