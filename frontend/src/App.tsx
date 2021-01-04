@@ -3,8 +3,17 @@ import { Web3Provider } from '@ethersproject/providers'
 import { formatEther } from 'ethers/lib/utils'
 import React, { useEffect, useState } from 'react'
 import WalletConnectProvider from '@walletconnect/web3-provider'
-import { Box, Button, Container, Paper, Typography } from '@material-ui/core'
+import {
+  Box,
+  Button,
+  Container,
+  Paper,
+  Table,
+  TableHead,
+  Typography
+} from '@material-ui/core'
 import { getNetworkNameFromId } from './utils/Network'
+import { Balances } from './types/types'
 
 declare global {
   interface Window {
@@ -27,6 +36,9 @@ const web3Modal = new Web3Modal({
 const App = () => {
   const [injectedProvider, setInjectedProvider] = useState<Web3Provider>()
   const [address, setAddress] = useState<string>()
+  const [balances, setBalances] = useState<Balances>([
+    { token: 'ETH', balance: 0 }
+  ])
 
   useEffect(() => {
     if (!injectedProvider) return
@@ -35,12 +47,6 @@ const App = () => {
     // - wallet has connected
     // - network has changed
     getBalance()
-
-    const getAddress = async () => {
-      const signer = injectedProvider.getSigner()
-      setAddress(await signer.getAddress())
-    }
-    getAddress()
   }, [injectedProvider])
 
   const connect = async () => {
@@ -84,15 +90,21 @@ const App = () => {
   const getBalance = async () => {
     if (!injectedProvider) return
 
+    // Get address first & store it in a state var
     const signer = injectedProvider.getSigner()
     const address = await signer.getAddress()
+    setAddress(address)
+
+    // Get balance once address is known
     const bal = await injectedProvider.getBalance(address)
 
+    // Format balance to ETH
     const etherBalance = formatEther(bal)
     parseFloat(etherBalance).toFixed(2)
     const floatBalance = parseFloat(etherBalance)
 
-    console.log('bal:', floatBalance.toFixed(4))
+    // Save ETH balance to state var
+    setBalances([...balances, { token: 'ETH', balance: floatBalance }])
   }
 
   return (
@@ -117,7 +129,19 @@ const App = () => {
               <Typography variant="caption">WALLET</Typography>
               <Box textAlign="center">
                 {address ? (
-                  <>{address}</>
+                  <div>
+                    <Typography>{address}</Typography>
+                    <Table>
+                      {balances.map((bal) => {
+                        return (
+                          <tr>
+                            <td>{bal.token}</td>
+                            <td>{bal.balance}</td>
+                          </tr>
+                        )
+                      })}
+                    </Table>
+                  </div>
                 ) : (
                   <Button variant="contained" color="primary" onClick={connect}>
                     Connect
