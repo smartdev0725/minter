@@ -1,4 +1,4 @@
-pragma solidity ^0.6.0;
+pragma solidity ^0.7.0;
 
 import './implementation/ExpandedERC20.sol';
 import './implementation/Lockable.sol';

@@ -1,186 +1,141 @@
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import { BigNumber } from 'ethers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
+import { BigNumber, Contract } from 'ethers'
+import {
+  deployContract,
+  isValidContract,
+  isValidERC20
+} from './util/DeployContract'
 
-describe('Synthetic PHPM is minted', async () => {
-  // Helper Contracts
-  let accounts, contractCreatorAddress, otherUserAddress, userAddress, contract
+/**
+ * Assert vs expect vs should:
+ * https://stackoverflow.com/questions/21396524/what-is-the-difference-between-assert-expect-and-should-in-chai#21405128
+ * we are going with expect for now
+ */
 
-  // Constants
-  // const priceFeedIdentifier = utf8ToHex('ETH/USD') // need this for UMA minting
+// Helper vars
+let accounts,
+  otherUserAddress: string,
+  userAddress: string,
+  collateralAddress: string,
+  expandedERC20LabelString: string = 'ExpandedERC20',
+  tokenFactoryLabelString: string = 'TokenFactory',
+  // name not as impt, since does not have an artifact to reference since auto deployed by TokenFactory
+  phmContractLabelString: string = 'PHMContract',
+  minterContractLabelString: string = 'Minter'
 
-  // Contract variables
-  let tokenFactory
-  let phpmTokenAddress
-  let collateralAddress
-  let phpmContract
+// account that signs deploy txs
+let contractCreatorAccount: SignerWithAddress
 
-  // PHPM Token Details
-  const tokenDetails = {
-    name: 'Mochi PH Token',
-    symbol: 'PHPM',
-    decimals: '18'
-  }
+// Constants
+// const priceFeedIdentifier = utf8ToHex('ETH/USD') // need this for UMA minting
 
-  // Collaeral details
-  const collateralTokenDetails = {
-    name: 'DAI Stable Token',
-    symbol: 'DAI',
-    decimals: '18'
-  }
+// Contract variables that store deployed Contracts
+let tokenFactoryContract: Contract,
+  phmContract: Contract,
+  minterContract: Contract,
+  daiContract: Contract
 
-  const collateralMinted = 3333
+// PHM Token Details
+const tokenDetails = {
+  name: 'Mochi PH Token',
+  symbol: 'PHM',
+  decimals: '18'
+}
 
-  before(async function () {
-    // get an instance of TokenFactory
-    contract = await ethers.getContractFactory('TokenFactory')
+// Fake DAI Collaeral details
+const collateralTokenDetails = {
+  name: 'DAI Dummy Token',
+  symbol: 'DAI',
+  decimals: '18'
+}
 
-    // define signers
-    accounts = await ethers.getSigners()
-    contractCreatorAddress = accounts[0]
-    userAddress = accounts[1]
-    otherUserAddress = accounts[2]
+const collateralToMint = 3333
 
-    // Deploy and mint Collateral Dai Contract
-    // Get a reference of ERC20 Contract Factory
-    const DaiContract = await ethers.getContractFactory('ExpandedERC20')
+// single run per test setup
+before(async () => {
+  // define signers
+  accounts = await ethers.getSigners()
+  contractCreatorAccount = accounts[0]
+  userAddress = accounts[1]
+  otherUserAddress = accounts[2]
 
-    // Deploy DAI with constructors
-    const dai = await DaiContract.deploy(
-      collateralTokenDetails.name,
-      collateralTokenDetails.symbol,
-      collateralTokenDetails.decimals
+  // create the collateral token (this should be the existing DAI contract not created by us)
+  it('Can deploy and get ref to DAI Contract', async () => {
+    // deploy Contract with 'expect' assurances
+    daiContract = await deployContract(
+      expandedERC20LabelString,
+      collateralTokenDetails
     )
-    // Wait for dai to be deploy
-    await dai.deployed()
 
     // (to check) assign dai address
-    collateralAddress = dai.address
+    collateralAddress = daiContract.address
 
-    // add address as minter
-    await dai.addMinter(contractCreatorAddress.address)
+    // add address as minter - contractCreatorAddress not automatically added as minter for some reason
+    await daiContract.addMinter(contractCreatorAccount.address)
 
     // mint token
-    await dai.mint(contractCreatorAddress.address, collateralMinted)
+    await daiContract.mint(contractCreatorAccount.address, collateralToMint)
 
     // get balance
     const daiBalance = BigNumber.from(
-      await dai.balanceOf(contractCreatorAddress.address)
+      await daiContract.balanceOf(contractCreatorAccount.address)
     ).toNumber()
 
     // test if values are equal
-    expect(daiBalance).to.equal(collateralMinted)
+    expect(daiBalance).to.be.equal(
+      collateralToMint,
+      'contract creator ' +
+        contractCreatorAccount.address +
+        ' does not have expected balance of ' +
+        collateralToMint
+    )
+  })
 
-    // Reference ERC20 contract
-    tokenFactory = await contract.deploy()
+  // create the TokenFactory (existing contract by UMA not us)
+  it('Can deploy and get ref to TokenFactory', async () => {
+    tokenFactoryContract = await deployContract(tokenFactoryLabelString)
+  })
 
-    // deploy token factory contract in blockchain
-    await tokenFactory.deployed()
-
+  // create the synthetic token (this should be created by UMA not us)
+  it('Can deploy and get ref to PHM Contract', async () => {
     // create token
-    const tx = await tokenFactory.createToken(
+    const tx = await tokenFactoryContract.createToken(
       tokenDetails.name,
       tokenDetails.symbol,
       tokenDetails.decimals,
-      { from: contractCreatorAddress.address }
+      { from: contractCreatorAccount.address }
     )
 
     // check transaction receipt to obtain token's address
     const txReceipt = await tx.wait()
     const txReceiptEvent = txReceipt.events.pop()
 
-    // store token address
-    phpmTokenAddress = txReceiptEvent.address
+    /**
+     * get contract prev deployed by tokenFactory using address and account[0] as signer
+     */
+    phmContract = await ethers.getContractAt(
+      expandedERC20LabelString,
+      txReceiptEvent.address,
+      accounts[0]
+    )
+
+    // check if valid Contract obj
+    await isValidContract(phmContract, 'expandedERC20LabelString')
+    // check if valid ERC20 Contract obj
+    await isValidERC20(phmContractLabelString, phmContract, tokenDetails)
   })
 
-  describe('creates the PHPM contract', async () => {
-    // Make an instance of the token deployed by the token factory
-    it('gets the contract', async () => {
-      phpmContract = await ethers.getContractAt(
-        'ExpandedERC20',
-        phpmTokenAddress,
-        contractCreatorAddress.address
-      )
-
-      // Check if created token is equal to token being called
-      expect(await phpmContract.name()).to.be.equal(tokenDetails.name)
-      expect(await phpmContract.symbol()).to.be.equal(tokenDetails.symbol)
-      expect((await phpmContract.decimals()).toString()).to.be.equal(
-        tokenDetails.decimals
-      )
-    })
-
-    describe('Synthetic token is minted', async () => {
-      describe('Can accept DAI collateral', async () => {
-        // TODO: Working in progress, only return event for now and doesnt do collateral deposit yet
-        let depositContract, deployedDepositContract
-
-        it('deploys the minter contract', async () => {
-          depositContract = await ethers.getContractFactory('Minter')
-          deployedDepositContract = await depositContract.deploy()
-
-          const deploymentTx = await deployedDepositContract.deployed()
-          expect(await deploymentTx.resolvedAddress).to.be.not.null
-        })
-
-        it('initialize the minterContract ', async () => {
-          const intializeTx = await deployedDepositContract.initialize()
-
-          expect(intializeTx.blockNumber).to.be.not.null
-        })
-
-        it('deposit the collateral in the deposit contract', async () => {
-          const deposit = await deployedDepositContract.deposit(1000)
-          const txReceipt = await deposit.wait()
-
-          expect(txReceipt.events[0].event === 'Deposit')
-        })
-      })
-      describe('it mints synthetic token', async () => {
-        // test values
-        let afterMint = 100
-        let beforeMint = 0
-
-        it(`has a balance of ${beforeMint}`, async () => {
-          // Check if  balance is zero before minting
-          expect(
-            BigNumber.from(
-              await phpmContract.balanceOf(contractCreatorAddress.address)
-            ).toNumber()
-          ).to.be.equal(beforeMint)
-        })
-
-        it(`mints ${afterMint}`, async () => {
-          const tx = await phpmContract.mint(
-            contractCreatorAddress.address,
-            afterMint
-          )
-          // wait for the transaction to be processed/mined
-          await tx.wait()
-          // TODO: Add Mint event
-        })
-
-        it(`has an account balance of ${afterMint}`, async () => {
-          // CHeck if mint is successful
-          expect(
-            BigNumber.from(
-              await phpmContract.balanceOf(contractCreatorAddress.address)
-            ).toNumber()
-          ).to.be.equal(afterMint)
-        })
-      })
-    })
+  it('Can deploy and get ref to Minter Contract', async () => {
+    minterContract = await deployContract(minterContractLabelString)
   })
 })
-
+beforeEach(async () => {})
+describe('Can accept DAI collateral', async () => {
+  it('Can deposit DAI into Minter and receive PHM back', async () => {})
+})
 describe('Can transfer synth to recipient wallet', () => {})
-
-/**
- * 
-  beforeEach(async () => {})
-  describe('Synthetic is minted', () => {}) 
-  describe('Can redeem synth for DAI collateral', () => {})
-  describe('Can earn HALO upon synth mint', () => {})
-  describe('Can earn HALO on transfer to whitelisted AMM address', () => {})
-})
- */
+describe('Can redeem synth for DAI collateral', () => {})
+describe('Can earn HALO upon synth mint', () => {})
+describe('Can earn HALO on transfer to whitelisted AMM address', () => {})
