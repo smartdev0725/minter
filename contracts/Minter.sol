@@ -16,19 +16,29 @@ contract Minter is Lockable {
   // The collateral currency used to back the positions in this contract.
   IERC20 public collateralCurrency;
 
+  // stores the diff collateral types that can mint synthetics
+  address[] private collateralAddresses;
+
+  struct UserRecord {
+      address userAddress;
+      mapping(address => uint256) collateralDeposit;
+  }
+
   /****************************************
    *                EVENTS                *
    ****************************************/
-  event Deposit(address indexed user, uint256 collateral);
+  event DepositedCollateral(address indexed user, uint256 collateral, address collateralAddress);
   event Mint(address indexed user, uint256 value);
   event RequestWithdrawal(
     address user,
     uint256 collateral,
+    address collateralAddresss,
     uint256 requestPassTimeStamp
   );
   event RequestWithdrawalExecuted(
     address user,
     uint256 collateral,
+    address collateralAddress,
     uint256 exchangeRate,
     uint256 requestPassTimeStamp
   );
@@ -52,24 +62,27 @@ contract Minter is Lockable {
     initialized = true;
   }
 
-  function deposit(uint256 collateralAmount)
+  function depositByCollateralAddress(uint256 _collateralAmount, address _collateralAddress)
     public
     isInitialized()
     // fees()
     nonReentrant()
   {
     // 1- check if collateral amount is greater than 0
-    require(collateralAmount > 0, 'Invalid collateral amount');
+    require(_collateralAmount > 0, 'Invalid collateral amount');
+
+    // check if collateralAddress is part of 'whitelisted' collateral types
+    require(collateralAddresses[_collateralAddress.exsts], 'collateral address does not exist')
 
     // TODO: 2 - Move collateral currency from sender to contract. (from erc20 safe math)
     // collateralCurrency.safeTransferFrom(
     //   msg.sender,
     //   address(this),
-    //   collateralAmount
+    //   _collateralAmount
     // );
 
     // 3 - Emit successful deposit event
-    emit Deposit(msg.sender, collateralAmount);
+    emit DepositedCollateral(msg.sender, _collateralAmount);
 
     // TODO: 4 - Calculate conversion rate + fees
 
@@ -82,14 +95,14 @@ contract Minter is Lockable {
   /**
    * Returns total collateral in contract
    */
-  function getTotalCollateral() public view returns (uint256) {
+  function getTotalCollateralByCollateralAddress(address _collateralAddress) public view returns (uint256) {
     return _totalCollateral;
   }
 
   /**
    * TODO: Returns collateral of the user
    */
-  function getUserCollateral() public view returns (uint256) {}
+  function getUserCollateralByUserAddressCollateralAddress(address _user, address _collateralAddress) public view returns (uint256) {}
 
   /****************************************
    *          INTERNAL FUNCTIONS          *
