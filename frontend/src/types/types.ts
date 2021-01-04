@@ -1,6 +1,4 @@
-type ContractInfo = {
+export type ContractInfo = {
   name: string
   totalSupply: number
 }
-
-export type { ContractInfo }

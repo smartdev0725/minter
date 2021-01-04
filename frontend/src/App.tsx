@@ -4,6 +4,13 @@ import { formatEther } from 'ethers/lib/utils'
 import React, { useEffect, useState } from 'react'
 import WalletConnectProvider from '@walletconnect/web3-provider'
 import { Box, Button, Container, Paper, Typography } from '@material-ui/core'
+import { getNetworkNameFromId } from './utils/Network'
+
+declare global {
+  interface Window {
+    ethereum: any | undefined
+  }
+}
 
 const web3Modal = new Web3Modal({
   cacheProvider: true,
@@ -19,12 +26,21 @@ const web3Modal = new Web3Modal({
 
 const App = () => {
   const [injectedProvider, setInjectedProvider] = useState<Web3Provider>()
+  const [address, setAddress] = useState<string>()
 
   useEffect(() => {
+    if (!injectedProvider) return
+
     // Reload balance web3 provider has *changed*:
     // - wallet has connected
     // - network has changed
     getBalance()
+
+    const getAddress = async () => {
+      const signer = injectedProvider.getSigner()
+      setAddress(await signer.getAddress())
+    }
+    getAddress()
   }, [injectedProvider])
 
   const connect = async () => {
@@ -88,7 +104,9 @@ const App = () => {
           <Paper>
             <Box p={2}>
               <Typography variant="caption">CURRENT NETWORK</Typography>
-              <Typography>Unknown</Typography>
+              <Typography>
+                {getNetworkNameFromId(window.ethereum.chainId)}
+              </Typography>
             </Box>
           </Paper>
         </Box>
@@ -98,9 +116,13 @@ const App = () => {
             <Box p={2}>
               <Typography variant="caption">WALLET</Typography>
               <Box textAlign="center">
-                <Button variant="contained" color="primary" onClick={connect}>
-                  Connect
-                </Button>
+                {address ? (
+                  <>{address}</>
+                ) : (
+                  <Button variant="contained" color="primary" onClick={connect}>
+                    Connect
+                  </Button>
+                )}
               </Box>
             </Box>
           </Paper>
