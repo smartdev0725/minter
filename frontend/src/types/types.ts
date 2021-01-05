@@ -4,6 +4,5 @@ export type ContractInfo = {
 }
 
 export type Balances = {
-  token: string
-  balance: number
-}[]
+  [key: string]: number
+}

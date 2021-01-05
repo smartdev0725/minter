@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ethers, utils } from 'ethers'
-import TokenFactoryArtifact from './contracts/TokenFactory.json'
+import TokenArtifact from './contracts/Token.json'
 import contractAddress from './contracts/contract-address.json'
-import { TokenFactory as TokenFactoryContract } from './typechain/TokenFactory'
+import { Token as TokenContract } from './typechain/Token'
 import { ConnectState, Networks, NetworkNames } from './types/enums'
 import { ContractInfo } from './types/types'
 
@@ -16,9 +16,7 @@ function DApp() {
   const [connectState, setConnectState] = useState<ConnectState>(
     ConnectState.DISCONNECTED
   )
-  const [contract, setContract] = useState<TokenFactoryContract | undefined>(
-    undefined
-  )
+  const [contract, setContract] = useState<TokenContract | undefined>(undefined)
   const [contractInfo, setContractInfo] = useState<ContractInfo | undefined>(
     undefined
   )
@@ -59,14 +57,14 @@ function DApp() {
     const provider = new ethers.providers.Web3Provider(window.ethereum)
 
     // 2 - Call the contract token
-    const tokenFactoryContract = new ethers.Contract(
+    const tokenContract = new ethers.Contract(
       contractAddress.Token,
-      TokenFactoryArtifact.abi,
+      TokenArtifact.abi,
       provider.getSigner()
-    ) as TokenFactoryContract
+    ) as TokenContract
 
     // 3 - Set contract data in state
-    setContract(tokenFactoryContract)
+    setContract(tokenContract)
   }
 
   const isContractDeployed = (contractByteCode: string) => {
@@ -126,13 +124,13 @@ function DApp() {
 
     // 4 - Call function
     getContractInfo()
-      .then(isContractDeployed => {
+      .then((isContractDeployed) => {
         // All good, mark as connected
         if (isContractDeployed) {
           setConnectState(ConnectState.CONNECTED)
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err)
         // Problem with connection
         setConnectState(ConnectState.WRONG_NETWORK)

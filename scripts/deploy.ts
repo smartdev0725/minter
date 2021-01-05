@@ -8,14 +8,14 @@ const main = async () => {
   console.log('Deploying contracts with the account:', deployer.address)
   console.log('Account balance:', (await deployer.getBalance()).toString())
 
-  const TokenFactory = await ethers.getContractFactory('TokenFactory')
-  const tokenFactory = await TokenFactory.deploy()
+  const Token = await ethers.getContractFactory('Token')
+  const tokenContract = await Token.deploy()
 
-  console.log('Token address:', tokenFactory.address)
-  saveFrontendFiles(tokenFactory)
+  console.log('Token address:', tokenContract.address)
+  saveFrontendFiles(tokenContract)
 }
 
-const saveFrontendFiles = token => {
+const saveFrontendFiles = (token) => {
   const contractsDir = __dirname + '/../frontend/src/contracts'
   const typechainSrcDir = __dirname + '/../typechain'
   const typechainDestDir = __dirname + '/../frontend/src/typechain'
@@ -34,11 +34,11 @@ const saveFrontendFiles = token => {
     JSON.stringify({ Token: token.address }, undefined, 2)
   )
 
-  const TokenFactoryArtifact = artifacts.readArtifactSync('TokenFactory')
+  const TokenArtifact = artifacts.readArtifactSync('Token')
 
   fs.writeFileSync(
-    contractsDir + '/TokenFactory.json',
-    JSON.stringify(TokenFactoryArtifact, null, 2)
+    contractsDir + '/Token.json',
+    JSON.stringify(TokenArtifact, null, 2)
   )
 
   // Copy typechain to /frontend/src/typechain directory
@@ -47,7 +47,7 @@ const saveFrontendFiles = token => {
 
 main()
   .then(() => process.exit(0))
-  .catch(error => {
+  .catch((error) => {
     console.error(error)
     process.exit(1)
   })
