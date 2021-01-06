@@ -8,5 +8,5 @@
   },
   "typescript.tsdk": "node_modules/typescript/lib",
   "solidity.packageDefaultDependenciesContractsDirectory": "",
-  "solidity.packageDefaultDependenciesDirectory": "node_modules",
+  "solidity.packageDefaultDependenciesDirectory": "../node_modules",
 }

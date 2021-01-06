@@ -129,13 +129,69 @@ before(async () => {
 
   it('Can deploy and get ref to Minter Contract', async () => {
     minterContract = await deployContract(minterContractLabelString)
+    await minterContract.initialize()
   })
-})
-beforeEach(async () => {})
-describe('Can accept DAI collateral', async () => {
-  it('Can deposit DAI into Minter and receive PHM back', async () => {})
+  beforeEach(async () => {})
+
+  /**
+   * TODO: test util funcs for events emitted after every state changing tx (Transfer, Mint, Burn, etc)
+   * TODO: these tests are still an initial outline, can actually break these down into smaller fixtures
+   * TODO: Need to think of every success/failure scenario
+   */
+  describe('Can accept collateral and mint synthetic', async () => {
+    it('sending collateral ERC20 to deposit func should mint PHM, return PHM to msg.sender', async () => {
+      // approve contract to spend collateral tokens
+      daiContract.approve(minterContract.address, 300)
+      const collateralDeposit = 123
+
+      // test if  contract has no collateral
+      expect(
+        BigNumber.from(
+          await daiContract.balanceOf(minterContract.address)
+        ).toNumber()
+      ).to.be.equal(
+        0,
+        `contract ${minterContract.address} does not have expected balance of 0`
+      )
+
+      // deposit collateral to minter contract
+      const depositTxn = await minterContract.depositByCollateralAddress(
+        collateralDeposit,
+        collateralAddress
+      )
+
+      await depositTxn.wait()
+
+      // Check latest values from the contract
+      expect(
+        BigNumber.from(
+          await daiContract.balanceOf(contractCreatorAccount.address)
+        ).toNumber()
+      ).to.be.equal(
+        collateralToMint - collateralDeposit,
+        `contract ${minterContract.address} does not have expected balance of ${collateralDeposit}`
+      )
+
+      expect(
+        BigNumber.from(
+          await daiContract.balanceOf(minterContract.address)
+        ).toNumber()
+      ).to.be.equal(
+        collateralDeposit,
+        `contract ${minterContract.address} does not have expected balance of ${collateralDeposit}`
+      )
+    })
+  })
+  it('sending non collateral ERC20 to deposit func should not mint PHM, not return PHM to msg.sender and return error', async () => {})
 })
 describe('Can transfer synth to recipient wallet', () => {})
-describe('Can redeem synth for DAI collateral', () => {})
+describe('Can redeem synth for original ERC20 collateral', () => {
+  it(
+    'sending synth and calling redeem func should burn synth, return ERC20 collateral to msg.sender, and return true'
+  )
+  it(
+    'sending invalid synth and calling redeem func should not burn synth, not return ERC20 collateral to msg.sender, and return err'
+  )
+})
 describe('Can earn HALO upon synth mint', () => {})
 describe('Can earn HALO on transfer to whitelisted AMM address', () => {})
