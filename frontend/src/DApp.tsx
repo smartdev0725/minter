@@ -57,14 +57,14 @@ function DApp() {
     const provider = new ethers.providers.Web3Provider(window.ethereum)
 
     // 2 - Call the contract token
-    const tokenContract = new ethers.Contract(
-      contractAddress.Token,
-      TokenArtifact.abi,
-      provider.getSigner()
-    ) as TokenContract
+    // const tokenContract = new ethers.Contract(
+    //   contractAddress.Token,
+    //   TokenArtifact.abi,
+    //   provider.getSigner()
+    // ) as TokenContract
 
-    // 3 - Set contract data in state
-    setContract(tokenContract)
+    // // 3 - Set contract data in state
+    // setContract(tokenContract)
   }
 
   const isContractDeployed = (contractByteCode: string) => {
@@ -95,29 +95,29 @@ function DApp() {
 
     // 2 - get contract info using the contract stored in state
     const getContractInfo = async () => {
-      // define provider
-      const provider = new ethers.providers.Web3Provider(window.ethereum)
-      // get current network
-      const network = await provider.getNetwork()
+      // // define provider
+      // const provider = new ethers.providers.Web3Provider(window.ethereum)
+      // // get current network
+      // const network = await provider.getNetwork()
 
-      // check if contractAddress is a deployed contract
-      const contractByteCode = await provider.getCode(contractAddress.Token)
-      isContractDeployed(contractByteCode)
+      // // check if contractAddress is a deployed contract
+      // const contractByteCode = await provider.getCode(contractAddress.Token)
+      // isContractDeployed(contractByteCode)
 
-      // get needed information
-      const name = await contract.name()
-      const totalSupply = (await contract.totalSupply()).toNumber()
-      // console.log(
-      //   'Balance: ',
-      //   await contract.balanceOf('0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 ')
-      // )
+      // // get needed information
+      // const name = await contract.name()
+      // const totalSupply = (await contract.totalSupply()).toNumber()
+      // // console.log(
+      // //   'Balance: ',
+      // //   await contract.balanceOf('0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 ')
+      // // )
 
-      setContractInfo({
-        name,
-        totalSupply
-      })
+      // setContractInfo({
+      //   name,
+      //   totalSupply
+      // })
 
-      setNetwork(network.name)
+      // setNetwork(network.name)
 
       return true
     }

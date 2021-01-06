@@ -10,6 +10,7 @@ import {
   Container,
   Paper,
   Table,
+  TableBody,
   Typography
 } from '@material-ui/core'
 import { getNetworkNameFromId } from './utils/Network'
@@ -20,6 +21,10 @@ import PHMIcon from './assets/phm.svg'
 import { NetworkNames } from './types/enums'
 import Deposit from './components/Deposit'
 import NotConnected from './components/NotConnected'
+import contractAddress from './contracts/contract-address.json'
+import PHMArtifact from './contracts/PHM.json'
+import { ethers } from 'ethers'
+import { ExpandedIERC20 } from './typechain'
 
 declare global {
   interface Window {
@@ -52,6 +57,8 @@ const App = () => {
   const [showDepositModal, setShowDepositModal] = useState(false)
   const [showNotConnectedModal, setShowNotConnectedModal] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [phmTotalSupply, setPhmTotalSupply] = useState(0)
+  const [phmContract, setPhmContract] = useState<ExpandedIERC20>()
 
   useEffect(() => {
     if (!injectedProvider) return
@@ -60,7 +67,28 @@ const App = () => {
     // - wallet has connected
     // - network has changed
     getBalance()
+
+    // Get PHM contract from the chain
+    const contract = new ethers.Contract(
+      contractAddress.PHM,
+      PHMArtifact.abi,
+      injectedProvider.getSigner()
+    ) as ExpandedIERC20
+    setPhmContract(contract)
   }, [injectedProvider])
+
+  useEffect(() => {
+    if (!phmContract) return
+
+    // Get total PHM supply
+    const getTotalSupply = async () => {
+      const totalBig = await phmContract.totalSupply()
+      console.log('totalBig:', totalBig.toNumber())
+      setPhmTotalSupply(totalBig.toNumber())
+    }
+
+    getTotalSupply()
+  }, [phmContract])
 
   /**
    * Watch window.ethereum to detect network changes
@@ -180,34 +208,36 @@ const App = () => {
                       </Box>
                       <Box px={12}>
                         <Table>
-                          {Object.keys(balances).map((token) => {
-                            return (
-                              <tr>
-                                <td width={50}>
-                                  <img
-                                    src={
-                                      token === 'ETH'
-                                        ? ETHIcon
-                                        : token === 'DAI'
-                                        ? DAIIcon
-                                        : PHMIcon
-                                    }
-                                    alt={token}
-                                  />
-                                </td>
-                                <td width={50} align="left">
-                                  <Typography>{token}</Typography>
-                                </td>
-                                <td align="right">
-                                  <Typography>
-                                    {balances[token] > 0
-                                      ? balances[token]
-                                      : balances[token].toFixed(2)}
-                                  </Typography>
-                                </td>
-                              </tr>
-                            )
-                          })}
+                          <TableBody>
+                            {Object.keys(balances).map((token) => {
+                              return (
+                                <tr key={token}>
+                                  <td width={50}>
+                                    <img
+                                      src={
+                                        token === 'ETH'
+                                          ? ETHIcon
+                                          : token === 'DAI'
+                                          ? DAIIcon
+                                          : PHMIcon
+                                      }
+                                      alt={token}
+                                    />
+                                  </td>
+                                  <td width={50} align="left">
+                                    <Typography>{token}</Typography>
+                                  </td>
+                                  <td align="right">
+                                    <Typography>
+                                      {balances[token] > 0
+                                        ? balances[token]
+                                        : balances[token].toFixed(2)}
+                                    </Typography>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </TableBody>
                         </Table>
                       </Box>
                     </div>
@@ -240,7 +270,9 @@ const App = () => {
                 <Typography variant="caption">MINTER</Typography>
                 <Box mt={2} textAlign="center">
                   <Typography variant="subtitle2">Total PHM supply</Typography>
-                  <Typography variant="h2">1000</Typography>
+                  <Typography variant="h2">
+                    {phmTotalSupply.toFixed(2)}
+                  </Typography>
                 </Box>
                 <Box mt={3} textAlign="center">
                   <Button
@@ -259,7 +291,7 @@ const App = () => {
                   </Button>
                   <Box mt={1}>
                     <Typography variant="caption">
-                      1 DAI = {conversionRate} PHM
+                      1 DAI = {conversionRate.toFixed(2)} PHM
                     </Typography>
                   </Box>
                 </Box>
