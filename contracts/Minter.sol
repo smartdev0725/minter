@@ -21,18 +21,11 @@ contract Minter is Lockable {
 
   uint256 internal constant phpDaiStubExchangeRate = 50;
 
-  // model for the collateral balance per address
-  struct CollateralBalance {
-    address collateralAddress;
-    mapping(address => uint256) collateralBalance;
-  }
+  // map collateralAddress balance to user
+  mapping(address => mapping(address => uint256)) collateralBalances;
 
   // stores the diff collateral types that can mint synthetics
   address[] private collateralAddresses;
-
-  // stores the user deposits per collateral address
-  // TODO: Check support for multiple collateral addresses
-  mapping(address => CollateralBalance) collateralBalances;
 
   /****************************************
    *                EVENTS                *
@@ -89,15 +82,20 @@ contract Minter is Lockable {
       isWhitelisted(_collateralAddress) == true,
       'This is not allowed as collateral.'
     );
-    // TODO: Check if there is collateral balance already, else add a new collateral entry
 
+    // Collateral token
     IERC20 token = ExpandedIERC20(_collateralAddress);
+    // PHM token
     SyntheticToken phmToken = SyntheticToken(_phmAddress);
 
     // Check if user has enough balance
     require(token.balanceOf(msg.sender) > 0, 'Not enough collateral amount');
 
+    // Transfer collateral from user to this contract
     token.safeTransferFrom(msg.sender, address(this), _collateralAmount);
+
+    // Update collateral balance deposited in this contract
+    _addCollateralBalances(_collateralAmount, _collateralAddress);
 
     // Emit successful deposit event
     emit DepositedCollateral(msg.sender, _collateralAmount, _collateralAddress);
@@ -108,13 +106,7 @@ contract Minter is Lockable {
       'Not enough collateral in contract'
     );
 
-    // Check current contract is a minter of the synthetic token
-    // require(
-    //   phmToken.isMinter(address(this)) == true,
-    //   'This contract is not a minter of the synthetic token'
-    // );
-
-    // 6 - Calculate conversion rate + fees, make a price identifier @ 50 pesos (Might be UMA part)
+    // Calculate conversion rate + fees, make a price identifier @ 50 pesos (Might be UMA part)
 
     uint256 mintedTokens = _collateralAmount.div(phpDaiStubExchangeRate);
 
@@ -134,27 +126,17 @@ contract Minter is Lockable {
     returns (uint256)
   {
     IERC20 token = ExpandedIERC20(_collateralAddress);
-    return token.balanceOf(_collateralAddress);
+    return token.balanceOf(address(this));
   }
 
   /**
    * Returns total user collateral in the contract
    */
-  function getUserCollateralByUserAddressCollateralAddress(
-    address _user,
-    address _collateralAddress
-  ) public view returns (uint256) {
-    uint256 i;
-
-    //  for (i = 0; i < collateralBalances[msg.sender].length; i++) {
-    //    if (
-    //      _collateralAddress ==
-    //      collateralBalances[msg.sender][i].collateralAddress
-    //    ) {
-    //      return collateralBalances[msg.sender][i].balance;
-    //    }
-    //  }
-
+  function getUserCollateralByCollateralAddress(address _collateralAddress)
+    public
+    view
+    returns (uint256)
+  {
     return collateralBalances[msg.sender][_collateralAddress];
   }
 
@@ -209,25 +191,6 @@ contract Minter is Lockable {
     }
   }
 
-  function isCollateralBalanceAdded(address _collateralAddress)
-    public
-    view
-    returns (bool)
-  {
-    uint256 i;
-    for (i = 0; i < collateralBalances[msg.sender].length; i++) {
-      if (
-        collateralBalances[msg.sender][i].collateralAddress ==
-        _collateralAddress
-      ) {
-        return true;
-      }
-    }
-
-    // TODO: double check behavior
-    return false;
-  }
-
   /****************************************
    *          INTERNAL FUNCTIONS          *
    ****************************************/
@@ -236,60 +199,24 @@ contract Minter is Lockable {
     require(initialized, 'Uninitialized contract');
   }
 
-  function _addNewCollateralEntry(
-    address _collateralAddress,
-    uint256 _collateralAmount
-  ) internal {
-    CollateralBalance memory newCollateral;
-    newCollateral.collateralAddress = _collateralAddress;
-    newCollateral.balance = _collateralAmount;
-
-    collateralBalances[msg.sender].push(newCollateral);
-  }
-
   function _addCollateralBalances(uint256 value, address _collateralAddress)
     internal
   {
-    uint256 i;
-    // TODO: make internal function
     uint256 collateralBalance =
-      getUserCollateralByUserAddressCollateralAddress(
-        msg.sender,
-        _collateralAddress
-      );
-    uint256 newCollateralBalance = collateralBalance.add(value);
-
-    for (i = 0; i < collateralBalances[msg.sender].length; i++) {
-      if (
-        collateralBalances[msg.sender][i].collateralAddress ==
-        _collateralAddress
-      ) {
-        collateralBalances[msg.sender][i].balance = newCollateralBalance;
-      }
-    }
+      collateralBalances[msg.sender][_collateralAddress];
+    collateralBalances[msg.sender][_collateralAddress] = collateralBalance.add(
+      value
+    );
   }
 
   function _removeCollateralBalances(uint256 value, address _collateralAddress)
     internal
   {
-    uint256 i;
-    // TODO: make internal function
     uint256 collateralBalance =
-      getUserCollateralByUserAddressCollateralAddress(
-        msg.sender,
-        _collateralAddress
-      );
-    uint256 newCollateralBalance = collateralBalance.sub(value);
-
-    require(newCollateralBalance > 0, 'Not enough collateral to remove');
-    for (i = 0; i < collateralBalances[msg.sender].length; i++) {
-      if (
-        collateralBalances[msg.sender][i].collateralAddress ==
-        _collateralAddress
-      ) {
-        collateralBalances[msg.sender][i].balance = newCollateralBalance;
-      }
-    }
+      collateralBalances[msg.sender][_collateralAddress];
+    collateralBalances[msg.sender][_collateralAddress] = collateralBalance.sub(
+      value
+    );
   }
 
   function _calculateRewards(
