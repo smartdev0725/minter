@@ -22,15 +22,12 @@ contract TokenFactory is Lockable {
     string calldata tokenSymbol,
     uint8 tokenDecimals
   ) external nonReentrant() returns (ExpandedIERC20 newToken) {
-    SyntheticToken mintableToken = new SyntheticToken(
-      tokenName,
-      tokenSymbol,
-      tokenDecimals
-    );
+    SyntheticToken mintableToken =
+      new SyntheticToken(tokenName, tokenSymbol, tokenDecimals);
     mintableToken.addMinter(msg.sender);
     mintableToken.addBurner(msg.sender);
     mintableToken.resetOwner(msg.sender);
-    // TODO: Change this to the minter contract ?
+
     newToken = ExpandedIERC20(address(mintableToken));
   }
 }

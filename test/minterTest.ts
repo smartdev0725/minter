@@ -130,6 +130,8 @@ before(async () => {
   it('Can deploy and get ref to Minter Contract', async () => {
     minterContract = await deployContract(minterContractLabelString)
     await minterContract.initialize()
+
+    // add whitelisting of the collateral address
   })
   beforeEach(async () => {})
 
@@ -140,11 +142,14 @@ before(async () => {
    */
   describe('Can accept collateral and mint synthetic', async () => {
     it('sending collateral ERC20 to deposit func should mint PHM, return PHM to msg.sender', async () => {
+      // add  minterContract as minter
+      await daiContract.addMinter(minterContract.address)
       // approve contract to spend collateral tokens
       daiContract.approve(minterContract.address, 300)
       const collateralDeposit = 123
 
       // test if  contract has no collateral
+      // change to balance before
       expect(
         BigNumber.from(
           await daiContract.balanceOf(minterContract.address)
@@ -162,14 +167,14 @@ before(async () => {
 
       await depositTxn.wait()
 
-      // Check latest values from the contract
+      // Check latest values from the contract so need to call again
       expect(
         BigNumber.from(
           await daiContract.balanceOf(contractCreatorAccount.address)
         ).toNumber()
       ).to.be.equal(
         collateralToMint - collateralDeposit,
-        `contract ${minterContract.address} does not have expected balance of ${collateralDeposit}`
+        `contract ${minterContract.address} does not have expected balance of the difference of collateralDeposit and user previous balance.`
       )
 
       expect(
