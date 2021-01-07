@@ -16,7 +16,7 @@ import {
   Typography
 } from '@material-ui/core'
 import { getNetworkNameFromId } from './utils/Network'
-import { Balances } from './types/types'
+import { Balances, Tokens } from './types/types'
 import ETHIcon from './assets/eth.svg'
 import DAIIcon from './assets/dai.svg'
 import PHMIcon from './assets/phm.svg'
@@ -117,7 +117,7 @@ const App = () => {
     // Get total PHM supply
     const getTotalSupply = async () => {
       const totalBig = await phmContract.totalSupply()
-      console.log('totalSupply:', totalBig.toNumber())
+      console.log('totalSupply:', totalBig)
       setPhmTotalSupply(totalBig.toNumber())
     }
 
@@ -125,12 +125,14 @@ const App = () => {
     const getPHMBalance = async () => {
       if (!address) return
       const bal = await phmContract.balanceOf(address)
-      console.log('PHM balance:', bal.toNumber())
+      console.log('PHM balance:', bal)
       setBalances({ ...balances, PHM: bal.toNumber() })
     }
 
-    getTotalSupply()
-    getPHMBalance()
+    // Hack: Make sure PHM balance is updated before DAI (or vice versa)
+    // This is to prevent both from modifying the `balances` state at the
+    // same time causing concurrency issue
+    getPHMBalance().then(getTotalSupply)
   }, [phmContract])
 
   useEffect(() => {
@@ -144,7 +146,7 @@ const App = () => {
     }
 
     getDAIBalance()
-  }, [daiContract])
+  }, [phmTotalSupply])
 
   useEffect(() => {
     if (!minterContract || !daiContract) return
@@ -300,15 +302,15 @@ const App = () => {
                         <p>{JSON.stringify(balances)}</p>
                         <Table>
                           <TableBody>
-                            {Object.keys(balances).map((token) => {
+                            {Object.values(Tokens).map((token) => {
                               return (
                                 <tr key={token}>
                                   <td width={50}>
                                     <img
                                       src={
-                                        token === 'ETH'
+                                        token === Tokens.ETH
                                           ? ETHIcon
-                                          : token === 'DAI'
+                                          : token === Tokens.DAI
                                           ? DAIIcon
                                           : PHMIcon
                                       }

@@ -3,6 +3,12 @@ export type ContractInfo = {
   totalSupply: number
 }
 
+export enum Tokens {
+  ETH = 'ETH',
+  DAI = 'DAI',
+  PHM = 'PHM'
+}
+
 export type Balances = {
-  [key: string]: number
+  [key in Tokens]: number
 }
