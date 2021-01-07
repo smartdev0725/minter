@@ -108,7 +108,7 @@ contract Minter is Lockable {
 
     // Calculate conversion rate + fees, make a price identifier @ 50 pesos (Might be UMA part)
 
-    uint256 mintedTokens = _collateralAmount.div(phpDaiStubExchangeRate);
+    uint256 mintedTokens = _collateralAmount.mul(phpDaiStubExchangeRate);
 
     // TODO: replace with UMA implementation
     phmToken.mint(msg.sender, mintedTokens);
