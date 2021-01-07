@@ -1,6 +1,6 @@
 import Web3Modal from 'web3modal'
 import { Web3Provider } from '@ethersproject/providers'
-import { formatEther } from 'ethers/lib/utils'
+import { formatEther, parseEther } from 'ethers/lib/utils'
 import React, { useEffect, useState } from 'react'
 // import WalletConnectProvider from '@walletconnect/web3-provider'
 import {
@@ -8,9 +8,11 @@ import {
   Button,
   CircularProgress,
   Container,
+  IconButton,
   Paper,
   Table,
   TableBody,
+  Tooltip,
   Typography
 } from '@material-ui/core'
 import { getNetworkNameFromId } from './utils/Network'
@@ -18,13 +20,18 @@ import { Balances } from './types/types'
 import ETHIcon from './assets/eth.svg'
 import DAIIcon from './assets/dai.svg'
 import PHMIcon from './assets/phm.svg'
-import { NetworkNames } from './types/enums'
+import { NetworkNames, Networks } from './types/enums'
 import Deposit from './components/Deposit'
 import NotConnected from './components/NotConnected'
-import contractAddress from './contracts/contract-address.json'
+import contractAddressObject from './contracts/contract-address.json'
 import PHMArtifact from './contracts/PHM.json'
+import DAIArtifact from './contracts/DAI.json'
+import MinterArtifact from './contracts/Minter.json'
 import { ethers } from 'ethers'
-import { ExpandedIERC20 } from './typechain'
+import { ExpandedIERC20, Minter } from './typechain'
+import { bigNumberToFloat, shortenAddress } from './utils/StringUtils'
+import FileCopyIcon from '@material-ui/icons/FileCopy'
+import InvalidNetwork from './components/InvalidNetwork'
 
 declare global {
   interface Window {
@@ -53,28 +60,55 @@ const App = () => {
   )
   const [address, setAddress] = useState<string>()
   const [balances, setBalances] = useState<Balances>({ ETH: 0, DAI: 0, PHM: 0 })
-  const [conversionRate] = useState(48)
+  const [conversionRate, setConversionRate] = useState(0)
   const [showDepositModal, setShowDepositModal] = useState(false)
   const [showNotConnectedModal, setShowNotConnectedModal] = useState(false)
+  const [showInvalidNetworkModal, setShowInvalidNetworkModal] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [phmTotalSupply, setPhmTotalSupply] = useState(0)
   const [phmContract, setPhmContract] = useState<ExpandedIERC20>()
+  const [daiContract, setDaiContract] = useState<ExpandedIERC20>()
+  const [minterContract, setMinterContract] = useState<Minter>()
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!injectedProvider) return
 
+    const initContracts = () => {
+      // Early return if connected to other network
+      if (network !== NetworkNames.LOCAL) return
+
+      setShowInvalidNetworkModal(false)
+
+      // Get PHM contract from the chain
+      const pContract = new ethers.Contract(
+        contractAddressObject.PHM,
+        PHMArtifact.abi,
+        injectedProvider.getSigner()
+      ) as ExpandedIERC20
+      setPhmContract(pContract)
+
+      // Get DAI contract from the chain
+      const dContract = new ethers.Contract(
+        contractAddressObject.DAI,
+        DAIArtifact.abi,
+        injectedProvider.getSigner()
+      ) as ExpandedIERC20
+      setDaiContract(dContract)
+
+      // Get Minter contract from the chain
+      const mContract = new ethers.Contract(
+        contractAddressObject.Minter,
+        MinterArtifact.abi,
+        injectedProvider.getSigner()
+      ) as Minter
+      setMinterContract(mContract)
+    }
+
     // Reload balance whenever web3 provider has *changed*:
     // - wallet has connected
     // - network has changed
-    getBalance()
-
-    // Get PHM contract from the chain
-    const contract = new ethers.Contract(
-      contractAddress.PHM,
-      PHMArtifact.abi,
-      injectedProvider.getSigner()
-    ) as ExpandedIERC20
-    setPhmContract(contract)
+    getETHBalance().then(initContracts)
   }, [injectedProvider])
 
   useEffect(() => {
@@ -83,12 +117,46 @@ const App = () => {
     // Get total PHM supply
     const getTotalSupply = async () => {
       const totalBig = await phmContract.totalSupply()
-      console.log('totalBig:', totalBig.toNumber())
+      console.log('totalSupply:', totalBig.toNumber())
       setPhmTotalSupply(totalBig.toNumber())
     }
 
+    // Get user's PHM balance
+    const getPHMBalance = async () => {
+      if (!address) return
+      const bal = await phmContract.balanceOf(address)
+      console.log('PHM balance:', bal.toNumber())
+      setBalances({ ...balances, PHM: bal.toNumber() })
+    }
+
     getTotalSupply()
+    getPHMBalance()
   }, [phmContract])
+
+  useEffect(() => {
+    if (!daiContract) return
+
+    const getDAIBalance = async () => {
+      if (!address) return
+      const bal = await daiContract.balanceOf(address)
+      console.log('DAI balance:', bal)
+      setBalances({ ...balances, DAI: bal.toNumber() })
+    }
+
+    getDAIBalance()
+  }, [daiContract])
+
+  useEffect(() => {
+    if (!minterContract || !daiContract) return
+
+    const getConversionRate = async () => {
+      const rate = await minterContract.getConversionRate(daiContract.address)
+      console.log('Conversion rate:', rate.toNumber())
+      setConversionRate(rate.toNumber())
+    }
+
+    getConversionRate()
+  }, [minterContract])
 
   /**
    * Watch window.ethereum to detect network changes
@@ -126,7 +194,6 @@ const App = () => {
     // Subscribe to chainId change
     provider.on('chainChanged', (chainId: number) => {
       console.log('provider.chainChanged!', chainId)
-      // getBalance()
       setInjectedProvider(new Web3Provider(provider))
     })
 
@@ -142,8 +209,10 @@ const App = () => {
     })
   }
 
-  const getBalance = async () => {
+  const getETHBalance = async () => {
     if (!injectedProvider) return
+
+    console.log('Connected to network:', network)
 
     // Get address first & store it in a state var
     const signer = injectedProvider.getSigner()
@@ -152,14 +221,12 @@ const App = () => {
 
     // Get balance once address is known
     const bal = await injectedProvider.getBalance(address)
+    console.log('ETH balance:', bal)
+    setBalances({ ...balances, ETH: bigNumberToFloat(bal) })
 
-    // Format balance to ETH
-    const etherBalance = formatEther(bal)
-    parseFloat(etherBalance).toFixed(2)
-    const floatBalance = parseFloat(etherBalance)
-
-    // Save ETH balance to state var
-    setBalances({ ...balances, ETH: floatBalance })
+    // const bal = await daiContract.balanceOf(address)
+    // console.log('DAI balance:', bal)
+    // setBalances({ ...balances, DAI: bigNumberToFloat(bal) })
   }
 
   return (
@@ -167,8 +234,10 @@ const App = () => {
       <Deposit
         isOpen={showDepositModal}
         onClose={() => setShowDepositModal(false)}
-        daiBalance={/*balances['DAI']*/ 100}
+        daiBalance={balances['DAI']}
         conversionRate={conversionRate}
+        minterContract={minterContract}
+        collateralContract={daiContract}
       />
 
       <NotConnected
@@ -176,6 +245,11 @@ const App = () => {
         onClose={() => setShowNotConnectedModal(false)}
         onConnectClicked={connect}
         isConnecting={isConnecting}
+      />
+
+      <InvalidNetwork
+        isOpen={showInvalidNetworkModal}
+        onClose={() => setShowInvalidNetworkModal(false)}
       />
 
       <Container maxWidth="sm">
@@ -204,9 +278,26 @@ const App = () => {
                         <Typography variant="caption">
                           Your public address
                         </Typography>
-                        <Typography>{address}</Typography>
+                        <Typography>
+                          {shortenAddress(address)}
+                          &nbsp;
+                          <Tooltip title={copied ? 'Copied' : 'Copy'}>
+                            <IconButton
+                              onClick={() => {
+                                navigator.clipboard.writeText(address)
+                                setCopied(true)
+                                setTimeout(() => {
+                                  setCopied(false)
+                                }, 2000)
+                              }}
+                            >
+                              <FileCopyIcon color="primary" fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Typography>
                       </Box>
                       <Box px={12}>
+                        <p>{JSON.stringify(balances)}</p>
                         <Table>
                           <TableBody>
                             {Object.keys(balances).map((token) => {
@@ -229,9 +320,7 @@ const App = () => {
                                   </td>
                                   <td align="right">
                                     <Typography>
-                                      {balances[token] > 0
-                                        ? balances[token]
-                                        : balances[token].toFixed(2)}
+                                      {balances[token].toFixed(2)}
                                     </Typography>
                                   </td>
                                 </tr>
@@ -280,7 +369,11 @@ const App = () => {
                     color="primary"
                     onClick={() => {
                       if (injectedProvider) {
-                        setShowDepositModal(true)
+                        if (network === NetworkNames.LOCAL) {
+                          setShowDepositModal(true)
+                        } else {
+                          setShowInvalidNetworkModal(true)
+                        }
                       } else {
                         setShowNotConnectedModal(true)
                       }

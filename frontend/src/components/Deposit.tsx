@@ -10,9 +10,13 @@ import {
   Typography,
   DialogActions,
   Button,
-  makeStyles
+  makeStyles,
+  CircularProgress
 } from '@material-ui/core'
 import SwapVertIcon from '@material-ui/icons/SwapVert'
+import { ExpandedIERC20, Minter } from '../typechain'
+import contractAddressObject from '../contracts/contract-address.json'
+import { formatEther, parseEther } from 'ethers/lib/utils'
 
 const useStyles = makeStyles({
   insufficientBalance: {
@@ -32,19 +36,50 @@ interface DepositProps {
   onClose: () => void
   daiBalance: number
   conversionRate: number
+  minterContract?: Minter
+  collateralContract?: ExpandedIERC20
 }
 
 const Deposit = ({
   isOpen,
   onClose,
   daiBalance,
-  conversionRate
+  conversionRate,
+  minterContract,
+  collateralContract
 }: DepositProps) => {
   const classes = useStyles()
   const [daiDeposit, setDaiDeposit] = useState(0)
   const [phmToBeMinted, setPhmToBeMinted] = useState(0)
   const [canDeposit, setCanDeposit] = useState(false)
   const [insufficientBalance, setInsufficientBalance] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  const deposit = async () => {
+    if (!minterContract || !collateralContract) return onClose()
+
+    setIsProcessing(true)
+
+    try {
+      console.log('amount to deposit: ', formatEther(daiDeposit))
+
+      await collateralContract.approve(contractAddressObject.Minter, daiDeposit)
+      console.log('Approved spend collateral tokens')
+
+      const tx = await minterContract.depositByCollateralAddress(
+        daiDeposit,
+        contractAddressObject.DAI
+      )
+      console.log('Deposited collateral tokens')
+
+      const res = await tx.wait()
+      console.log('Result:', res)
+
+      onClose()
+    } catch (err) {
+      setIsProcessing(false)
+    }
+  }
 
   useEffect(() => {
     setPhmToBeMinted(daiDeposit * conversionRate)
@@ -97,6 +132,7 @@ const Deposit = ({
                     ? classes.insufficientBalance
                     : classes.enoughBalance
                 }
+                disabled={isProcessing}
               />
               <Box textAlign="right">
                 <Typography variant="caption">
@@ -119,18 +155,31 @@ const Deposit = ({
       </DialogContent>
       <DialogActions>
         <Box m={2} textAlign="center">
-          <Button variant="contained" color="default" onClick={onClose}>
-            Cancel
-          </Button>
-          &nbsp;&nbsp;&nbsp;
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={onClose}
-            disabled={!canDeposit}
-          >
-            Deposit
-          </Button>
+          {isProcessing ? (
+            <Grid container spacing={1}>
+              <Grid item>
+                <CircularProgress size="1.2rem" />
+              </Grid>
+              <Grid item>
+                <Typography>Processing...</Typography>
+              </Grid>
+            </Grid>
+          ) : (
+            <>
+              <Button variant="contained" color="default" onClick={onClose}>
+                Cancel
+              </Button>
+              &nbsp;&nbsp;&nbsp;
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={deposit}
+                disabled={!canDeposit}
+              >
+                Deposit
+              </Button>
+            </>
+          )}
         </Box>
       </DialogActions>
     </Dialog>

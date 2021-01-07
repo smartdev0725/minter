@@ -24,7 +24,7 @@ const useStyles = makeStyles({
   root: {
     background: 'linear-gradient(135deg, #56276b, #a578b9)',
     width: '100vw',
-    height: '100vh',
+    minHeight: '100vh',
     margin: 0,
     padding: 0
   }

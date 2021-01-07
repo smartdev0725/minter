@@ -5,31 +5,46 @@ import { TokenFactory } from '../typechain/TokenFactory'
 import { Contract } from 'ethers'
 
 const main = async () => {
-  const [deployer] = await ethers.getSigners()
+  const [deployer, testUser] = await ethers.getSigners()
 
   console.log('Deploying contracts with the account:', deployer.address)
   console.log('Account balance:', (await deployer.getBalance()).toString())
 
+  // const wallet = await ethers.Wallet.fromMnemonic(process.env.MNEMONIC_SEED)
+  console.log('Account 1 test user address:', testUser.address)
+
   // Deploy dummy DAI contract
   const daiFactory = await ethers.getContractFactory('ExpandedERC20')
-  const daiContract = await daiFactory.deploy('DAI', 'DAI', '18')
+  let daiContract = await daiFactory.deploy('DAI', 'DAI', '18')
+  daiContract = await daiContract.deployed()
+  await daiContract.addMinter(deployer.address)
+  await daiContract.mint(testUser.address, 1000)
 
   // Deploy PHM contract (by deploying TokenFactory & calling TokenFactory.createToken())
   const tokenFactory = await ethers.getContractFactory('TokenFactory')
-  const tokenContract = (await tokenFactory.deploy()) as TokenFactory
+  let tokenContract = await tokenFactory.deploy()
+  tokenContract = await tokenContract.deployed()
 
   const tx = await tokenContract.createToken('Mochi PH Token', 'PHM', '18')
   const txReceiptEvent = (await tx.wait()).events.pop()
-
-  const phmContract = await ethers.getContractAt(
+  const phmContract = (await ethers.getContractAt(
     'ExpandedERC20',
     txReceiptEvent.address,
     deployer
-  )
+  )) as Contract
 
   // Deploy Minter contract
   const minterFactory = await ethers.getContractFactory('Minter')
-  const minterContract = await minterFactory.deploy()
+  let minterContract = await minterFactory.deploy(phmContract.address)
+  minterContract = await minterContract.deployed()
+
+  // Initialize minter & add DAI collateral
+  await minterContract.initialize()
+  await minterContract.addCollateralAddress(daiContract.address)
+
+  // Add minterContract as minter to both DAI & PHM
+  await daiContract.addMinter(minterContract.address)
+  await phmContract.addMinter(minterContract.address)
 
   saveFrontendFiles(daiContract, phmContract, minterContract)
 }
