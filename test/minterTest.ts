@@ -63,7 +63,7 @@ const nonCollateralTokenDetails = {
 // constants
 const collateralToMint = 3333
 const collateralDeposit = 150
-const expectedPHM = 3
+const expectedPHM = collateralDeposit * 50
 
 // single run per test setup
 before(async () => {
