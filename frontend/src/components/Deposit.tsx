@@ -16,7 +16,6 @@ import {
 import SwapVertIcon from '@material-ui/icons/SwapVert'
 import { ExpandedIERC20, Minter } from '../typechain'
 import contractAddressObject from '../contracts/contract-address.json'
-import { formatEther, parseEther } from 'ethers/lib/utils'
 
 const useStyles = makeStyles({
   insufficientBalance: {
@@ -38,6 +37,7 @@ interface DepositProps {
   conversionRate: number
   minterContract?: Minter
   collateralContract?: ExpandedIERC20
+  onDepositSuccessful: () => void
 }
 
 const Deposit = ({
@@ -46,7 +46,8 @@ const Deposit = ({
   daiBalance,
   conversionRate,
   minterContract,
-  collateralContract
+  collateralContract,
+  onDepositSuccessful
 }: DepositProps) => {
   const classes = useStyles()
   const [daiDeposit, setDaiDeposit] = useState(0)
@@ -54,32 +55,6 @@ const Deposit = ({
   const [canDeposit, setCanDeposit] = useState(false)
   const [insufficientBalance, setInsufficientBalance] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
-
-  const deposit = async () => {
-    if (!minterContract || !collateralContract) return onClose()
-
-    setIsProcessing(true)
-
-    try {
-      console.log('amount to deposit: ', formatEther(daiDeposit))
-
-      await collateralContract.approve(contractAddressObject.Minter, daiDeposit)
-      console.log('Approved spend collateral tokens')
-
-      const tx = await minterContract.depositByCollateralAddress(
-        daiDeposit,
-        contractAddressObject.DAI
-      )
-      console.log('Deposited collateral tokens')
-
-      const res = await tx.wait()
-      console.log('Result:', res)
-
-      onClose()
-    } catch (err) {
-      setIsProcessing(false)
-    }
-  }
 
   useEffect(() => {
     setPhmToBeMinted(daiDeposit * conversionRate)
@@ -95,14 +70,40 @@ const Deposit = ({
     } else {
       setInsufficientBalance(false)
     }
-  }, [daiDeposit])
+  }, [daiDeposit, conversionRate, daiBalance])
+
+  const deposit = async () => {
+    if (!minterContract || !collateralContract) return onClose()
+
+    setIsProcessing(true)
+
+    try {
+      console.log('amount to deposit: ', daiDeposit)
+
+      await collateralContract.approve(contractAddressObject.Minter, daiDeposit)
+      console.log('Approved spend collateral tokens')
+
+      const tx = await minterContract.depositByCollateralAddress(
+        daiDeposit,
+        contractAddressObject.DAI
+      )
+      console.log('Deposited collateral tokens')
+
+      const res = await tx.wait()
+      console.log('Result:', res)
+
+      onDepositSuccessful()
+    } catch (err) {
+      setIsProcessing(false)
+    }
+  }
 
   return (
     <Dialog
       open={isOpen}
       onClose={onClose}
       aria-labelledby="dialog-title"
-      maxWidth="sm"
+      maxWidth="xs"
     >
       <DialogTitle id="dialog-title">Mint PHM</DialogTitle>
       <DialogContent>
@@ -110,7 +111,7 @@ const Deposit = ({
           To mint PHM, please deposit DAI as your collateral. We show a preview
           of how much PHM can be minted for your DAI deposit.
         </DialogContentText>
-        <Box mx={12} textAlign="center">
+        <Box mx={6} textAlign="center">
           <Grid container spacing={2} justify="center" alignItems="center">
             <Grid item xs={3} sm={2}>
               <SwapVertIcon fontSize="large" />

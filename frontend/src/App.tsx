@@ -1,6 +1,5 @@
 import Web3Modal from 'web3modal'
 import { Web3Provider } from '@ethersproject/providers'
-import { formatEther, parseEther } from 'ethers/lib/utils'
 import React, { useEffect, useState } from 'react'
 // import WalletConnectProvider from '@walletconnect/web3-provider'
 import {
@@ -20,7 +19,7 @@ import { Balances, Tokens } from './types/types'
 import ETHIcon from './assets/eth.svg'
 import DAIIcon from './assets/dai.svg'
 import PHMIcon from './assets/phm.svg'
-import { NetworkNames, Networks } from './types/enums'
+import { NetworkNames } from './types/enums'
 import Deposit from './components/Deposit'
 import NotConnected from './components/NotConnected'
 import contractAddressObject from './contracts/contract-address.json'
@@ -58,7 +57,7 @@ const App = () => {
       ? getNetworkNameFromId(window.ethereum.chainId)
       : NetworkNames.UNKNOWN
   )
-  const [address, setAddress] = useState<string>()
+  const [userAddress, setUserAddress] = useState<string>()
   const [balances, setBalances] = useState<Balances>({ ETH: 0, DAI: 0, PHM: 0 })
   const [conversionRate, setConversionRate] = useState(0)
   const [showDepositModal, setShowDepositModal] = useState(false)
@@ -72,7 +71,28 @@ const App = () => {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
+    if (!window.ethereum) return
+
+    window.ethereum.on('chainChanged', (chainId: string) => {
+      if (!window.ethereum) return
+      setNetwork(getNetworkNameFromId(window.ethereum.chainId))
+    })
+  }, [window.ethereum])
+
+  useEffect(() => {
     if (!injectedProvider) return
+
+    console.log('Connected to network:', network)
+
+    const getUserAddressAndBalance = async () => {
+      const signer = injectedProvider.getSigner()
+      const address = await signer.getAddress()
+      setUserAddress(address)
+
+      const bal = await injectedProvider.getBalance(address)
+      console.log('ETH balance:', bal)
+      setBalances({ ...balances, ETH: bigNumberToFloat(bal) })
+    }
 
     const initContracts = () => {
       // Early return if connected to other network
@@ -105,48 +125,12 @@ const App = () => {
       setMinterContract(mContract)
     }
 
-    // Reload balance whenever web3 provider has *changed*:
-    // - wallet has connected
-    // - network has changed
-    getETHBalance().then(initContracts)
+    getUserAddressAndBalance().then(initContracts)
   }, [injectedProvider])
 
   useEffect(() => {
-    if (!phmContract) return
-
-    // Get total PHM supply
-    const getTotalSupply = async () => {
-      const totalBig = await phmContract.totalSupply()
-      console.log('totalSupply:', totalBig)
-      setPhmTotalSupply(totalBig.toNumber())
-    }
-
-    // Get user's PHM balance
-    const getPHMBalance = async () => {
-      if (!address) return
-      const bal = await phmContract.balanceOf(address)
-      console.log('PHM balance:', bal)
-      setBalances({ ...balances, PHM: bal.toNumber() })
-    }
-
-    // Hack: Make sure PHM balance is updated before DAI (or vice versa)
-    // This is to prevent both from modifying the `balances` state at the
-    // same time causing concurrency issue
-    getPHMBalance().then(getTotalSupply)
-  }, [phmContract])
-
-  useEffect(() => {
-    if (!daiContract) return
-
-    const getDAIBalance = async () => {
-      if (!address) return
-      const bal = await daiContract.balanceOf(address)
-      console.log('DAI balance:', bal)
-      setBalances({ ...balances, DAI: bal.toNumber() })
-    }
-
-    getDAIBalance()
-  }, [phmTotalSupply])
+    refreshBalances()
+  }, [phmContract, daiContract])
 
   useEffect(() => {
     if (!minterContract || !daiContract) return
@@ -158,17 +142,7 @@ const App = () => {
     }
 
     getConversionRate()
-  }, [minterContract])
-
-  /**
-   * Watch window.ethereum to detect network changes
-   */
-  if (window.ethereum) {
-    window.ethereum.on('chainChanged', (chainId: string) => {
-      if (!window.ethereum) return
-      setNetwork(getNetworkNameFromId(window.ethereum.chainId))
-    })
-  }
+  }, [minterContract, daiContract])
 
   const connect = async () => {
     setIsConnecting(true)
@@ -211,24 +185,29 @@ const App = () => {
     })
   }
 
-  const getETHBalance = async () => {
-    if (!injectedProvider) return
+  const refreshBalances = async () => {
+    let phmBalance = balances.PHM
+    let daiBalance = balances.DAI
 
-    console.log('Connected to network:', network)
+    if (phmContract) {
+      const totalSupply = await phmContract.totalSupply()
+      console.log('totalSupply:', totalSupply)
+      setPhmTotalSupply(totalSupply.toNumber())
 
-    // Get address first & store it in a state var
-    const signer = injectedProvider.getSigner()
-    const address = await signer.getAddress()
-    setAddress(address)
+      if (userAddress) {
+        const bal = await phmContract.balanceOf(userAddress)
+        console.log('PHM balance:', bal)
+        phmBalance = bal.toNumber()
+      }
+    }
 
-    // Get balance once address is known
-    const bal = await injectedProvider.getBalance(address)
-    console.log('ETH balance:', bal)
-    setBalances({ ...balances, ETH: bigNumberToFloat(bal) })
+    if (daiContract && userAddress) {
+      const bal = await daiContract.balanceOf(userAddress)
+      console.log('DAI balance:', bal)
+      daiBalance = bal.toNumber()
+    }
 
-    // const bal = await daiContract.balanceOf(address)
-    // console.log('DAI balance:', bal)
-    // setBalances({ ...balances, DAI: bigNumberToFloat(bal) })
+    setBalances({ ...balances, PHM: phmBalance, DAI: daiBalance })
   }
 
   return (
@@ -240,6 +219,10 @@ const App = () => {
         conversionRate={conversionRate}
         minterContract={minterContract}
         collateralContract={daiContract}
+        onDepositSuccessful={() => {
+          refreshBalances()
+          setShowDepositModal(false)
+        }}
       />
 
       <NotConnected
@@ -274,19 +257,19 @@ const App = () => {
               <Box p={2}>
                 <Typography variant="caption">WALLET</Typography>
                 <Box textAlign="center">
-                  {address ? (
+                  {userAddress ? (
                     <div>
                       <Box mb={2}>
                         <Typography variant="caption">
                           Your public address
                         </Typography>
                         <Typography>
-                          {shortenAddress(address)}
+                          {shortenAddress(userAddress)}
                           &nbsp;
                           <Tooltip title={copied ? 'Copied' : 'Copy'}>
                             <IconButton
                               onClick={() => {
-                                navigator.clipboard.writeText(address)
+                                navigator.clipboard.writeText(userAddress)
                                 setCopied(true)
                                 setTimeout(() => {
                                   setCopied(false)
@@ -299,7 +282,6 @@ const App = () => {
                         </Typography>
                       </Box>
                       <Box px={12}>
-                        <p>{JSON.stringify(balances)}</p>
                         <Table>
                           <TableBody>
                             {Object.values(Tokens).map((token) => {

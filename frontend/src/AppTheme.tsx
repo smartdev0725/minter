@@ -35,7 +35,7 @@ const AppTheme = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      {/* <CssBaseline /> */}
+      <CssBaseline />
       <div className={classes.root}>
         <App />
       </div>

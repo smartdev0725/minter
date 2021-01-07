@@ -19,7 +19,7 @@ const InvalidNetwork = ({ isOpen, onClose }: InvalidNetworkProps) => {
       open={isOpen}
       onClose={onClose}
       aria-labelledby="dialog-title"
-      maxWidth="sm"
+      maxWidth="xs"
     >
       <DialogTitle id="dialog-title">Wrong Network</DialogTitle>
       <DialogContent>
