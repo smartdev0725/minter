@@ -9,8 +9,35 @@ export const shortenAddress = (address: string) => {
   return displayAddress
 }
 
+/**
+ * Converts an ethers.BigNumber to vanilla JS "number"
+ */
 export const bigNumberToFloat = (bNumber: BigNumber) => {
   const etherBalance = formatEther(bNumber)
   parseFloat(etherBalance).toFixed(2)
   return parseFloat(etherBalance)
+}
+
+/**
+ * Formats a number to a currency string
+ *
+ * Taken from: https://stackoverflow.com/questions/149055/how-to-format-numbers-as-currency-string/14428340#14428340
+ *
+ * @param number bal: balance to format
+ * @param integer n: length of decimal
+ * @param integer x: length of whole part
+ * @param mixed   s: sections delimiter
+ * @param mixed   c: decimal delimiter
+ */
+export const formatBalance = (
+  bal: number,
+  n = 2,
+  x = 3,
+  s = ',',
+  c?: string
+) => {
+  const re = '\\d(?=(\\d{' + x + '})+' + (n > 0 ? '\\D' : '$') + ')',
+    num = bal.toFixed(Math.max(0, ~~n))
+
+  return (c ? num.replace('.', c) : num).replace(new RegExp(re, 'g'), '$&' + s)
 }

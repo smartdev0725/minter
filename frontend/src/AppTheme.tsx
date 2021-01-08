@@ -6,6 +6,7 @@ import {
   makeStyles,
   ThemeProvider
 } from '@material-ui/core'
+import { SnackbarProvider } from 'notistack'
 
 const theme = createMuiTheme({
   palette: {
@@ -36,9 +37,11 @@ const AppTheme = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div className={classes.root}>
-        <App />
-      </div>
+      <SnackbarProvider maxSnack={1}>
+        <div className={classes.root}>
+          <App />
+        </div>
+      </SnackbarProvider>
     </ThemeProvider>
   )
 }

@@ -16,6 +16,7 @@ import {
 import SwapVertIcon from '@material-ui/icons/SwapVert'
 import { ExpandedIERC20, Minter } from '../typechain'
 import contractAddressObject from '../contracts/contract-address.json'
+import { ChainError } from '../config/enums'
 
 const useStyles = makeStyles({
   insufficientBalance: {
@@ -38,6 +39,7 @@ interface DepositProps {
   minterContract?: Minter
   collateralContract?: ExpandedIERC20
   onDepositSuccessful: () => void
+  onDepositRejected: () => void
 }
 
 const Deposit = ({
@@ -47,7 +49,8 @@ const Deposit = ({
   conversionRate,
   minterContract,
   collateralContract,
-  onDepositSuccessful
+  onDepositSuccessful,
+  onDepositRejected
 }: DepositProps) => {
   const classes = useStyles()
   const [daiDeposit, setDaiDeposit] = useState(0)
@@ -78,8 +81,6 @@ const Deposit = ({
     setIsProcessing(true)
 
     try {
-      console.log('amount to deposit: ', daiDeposit)
-
       await collateralContract.approve(contractAddressObject.Minter, daiDeposit)
       console.log('Approved spend collateral tokens')
 
@@ -90,11 +91,15 @@ const Deposit = ({
       console.log('Deposited collateral tokens')
 
       const res = await tx.wait()
-      console.log('Result:', res)
+      console.log('Tx result:', res)
 
+      setIsProcessing(false)
       onDepositSuccessful()
     } catch (err) {
       setIsProcessing(false)
+      if (err.code && err.code === ChainError.REJECTED) {
+        onDepositRejected()
+      }
     }
   }
 

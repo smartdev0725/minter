@@ -6,7 +6,7 @@ import {
   DialogContentText,
   Typography
 } from '@material-ui/core'
-import { NetworkNames } from '../types/enums'
+import { NetworkNames } from '../config/enums'
 
 interface InvalidNetworkProps {
   isOpen: boolean

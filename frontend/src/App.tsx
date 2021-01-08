@@ -7,19 +7,11 @@ import {
   Button,
   CircularProgress,
   Container,
-  IconButton,
   Paper,
-  Table,
-  TableBody,
-  Tooltip,
   Typography
 } from '@material-ui/core'
 import { getNetworkNameFromId } from './utils/Network'
-import { Balances, Tokens } from './types/types'
-import ETHIcon from './assets/eth.svg'
-import DAIIcon from './assets/dai.svg'
-import PHMIcon from './assets/phm.svg'
-import { NetworkNames } from './types/enums'
+import { NetworkNames } from './config/enums'
 import Deposit from './components/Deposit'
 import NotConnected from './components/NotConnected'
 import contractAddressObject from './contracts/contract-address.json'
@@ -28,9 +20,13 @@ import DAIArtifact from './contracts/DAI.json'
 import MinterArtifact from './contracts/Minter.json'
 import { ethers } from 'ethers'
 import { ExpandedIERC20, Minter } from './typechain'
-import { bigNumberToFloat, shortenAddress } from './utils/StringUtils'
-import FileCopyIcon from '@material-ui/icons/FileCopy'
+import { bigNumberToFloat, formatBalance } from './utils/StringUtils'
 import InvalidNetwork from './components/InvalidNetwork'
+import AddressAndBalance from './components/AddressAndBalance'
+import { Alert } from '@material-ui/lab'
+import { useSnackbar } from 'notistack'
+import { Balances } from './config/types'
+import { formatUnits } from 'ethers/lib/utils'
 
 declare global {
   interface Window {
@@ -68,16 +64,14 @@ const App = () => {
   const [phmContract, setPhmContract] = useState<ExpandedIERC20>()
   const [daiContract, setDaiContract] = useState<ExpandedIERC20>()
   const [minterContract, setMinterContract] = useState<Minter>()
-  const [copied, setCopied] = useState(false)
+  const { enqueueSnackbar } = useSnackbar()
 
-  useEffect(() => {
-    if (!window.ethereum) return
-
+  if (!window.ethereum) {
     window.ethereum.on('chainChanged', (chainId: string) => {
       if (!window.ethereum) return
       setNetwork(getNetworkNameFromId(window.ethereum.chainId))
     })
-  }, [window.ethereum])
+  }
 
   useEffect(() => {
     if (!injectedProvider) return
@@ -147,6 +141,7 @@ const App = () => {
   const connect = async () => {
     setIsConnecting(true)
     console.log('connecting...')
+
     try {
       const provider = await web3Modal.connect()
       console.log('provider:', provider)
@@ -220,8 +215,14 @@ const App = () => {
         minterContract={minterContract}
         collateralContract={daiContract}
         onDepositSuccessful={() => {
+          enqueueSnackbar('PHM successfully minted!', { variant: 'success' })
           refreshBalances()
           setShowDepositModal(false)
+        }}
+        onDepositRejected={() => {
+          enqueueSnackbar('You have rejected the transaction!', {
+            variant: 'error'
+          })
         }}
       />
 
@@ -248,6 +249,14 @@ const App = () => {
               <Box p={2}>
                 <Typography variant="caption">CURRENT NETWORK</Typography>
                 <Typography>{network}</Typography>
+                {injectedProvider && network !== NetworkNames.LOCAL && (
+                  <Box mt={1}>
+                    <Alert severity="error">
+                      To use our PHM minter, you need to be on the{' '}
+                      {NetworkNames.LOCAL} network.
+                    </Alert>
+                  </Box>
+                )}
               </Box>
             </Paper>
           </Box>
@@ -258,62 +267,10 @@ const App = () => {
                 <Typography variant="caption">WALLET</Typography>
                 <Box textAlign="center">
                   {userAddress ? (
-                    <div>
-                      <Box mb={2}>
-                        <Typography variant="caption">
-                          Your public address
-                        </Typography>
-                        <Typography>
-                          {shortenAddress(userAddress)}
-                          &nbsp;
-                          <Tooltip title={copied ? 'Copied' : 'Copy'}>
-                            <IconButton
-                              onClick={() => {
-                                navigator.clipboard.writeText(userAddress)
-                                setCopied(true)
-                                setTimeout(() => {
-                                  setCopied(false)
-                                }, 2000)
-                              }}
-                            >
-                              <FileCopyIcon color="primary" fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Typography>
-                      </Box>
-                      <Box px={12}>
-                        <Table>
-                          <TableBody>
-                            {Object.values(Tokens).map((token) => {
-                              return (
-                                <tr key={token}>
-                                  <td width={50}>
-                                    <img
-                                      src={
-                                        token === Tokens.ETH
-                                          ? ETHIcon
-                                          : token === Tokens.DAI
-                                          ? DAIIcon
-                                          : PHMIcon
-                                      }
-                                      alt={token}
-                                    />
-                                  </td>
-                                  <td width={50} align="left">
-                                    <Typography>{token}</Typography>
-                                  </td>
-                                  <td align="right">
-                                    <Typography>
-                                      {balances[token].toFixed(2)}
-                                    </Typography>
-                                  </td>
-                                </tr>
-                              )
-                            })}
-                          </TableBody>
-                        </Table>
-                      </Box>
-                    </div>
+                    <AddressAndBalance
+                      address={userAddress}
+                      balances={balances}
+                    />
                   ) : (
                     <>
                       {isConnecting ? (
@@ -344,7 +301,7 @@ const App = () => {
                 <Box mt={2} textAlign="center">
                   <Typography variant="subtitle2">Total PHM supply</Typography>
                   <Typography variant="h2">
-                    {phmTotalSupply.toFixed(2)}
+                    {formatBalance(phmTotalSupply)}
                   </Typography>
                 </Box>
                 <Box mt={3} textAlign="center">

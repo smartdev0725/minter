@@ -24,3 +24,13 @@ export enum NetworkNames {
   LOCAL = 'localhost:8545',
   UNKNOWN = 'Unknown Network'
 }
+
+export enum Tokens {
+  ETH = 'ETH',
+  DAI = 'DAI',
+  PHM = 'PHM'
+}
+
+export enum ChainError {
+  REJECTED = 4001
+}
