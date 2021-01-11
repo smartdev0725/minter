@@ -15,6 +15,7 @@ contract Minter is Lockable {
 
   bool private initialized;
   address private _phmAddress;
+  address private _contractCreator;
 
   // stores the collateral address
   address private _collateralAddress;
@@ -59,6 +60,7 @@ contract Minter is Lockable {
 
   constructor(address phmAddress) public nonReentrant() {
     _phmAddress = phmAddress;
+    _contractCreator = msg.sender;
   }
 
   function initialize() public nonReentrant() {
@@ -70,6 +72,9 @@ contract Minter is Lockable {
     isInitialized()
     nonReentrant()
   {
+    // TODO: Add role/admin, check MultiRole.sol
+
+    require(isAdmin() == true, 'Sender is not allowed to do this action');
     IERC20 token = ExpandedIERC20(_collateralAddress);
     token.approve(address(this), amount);
 
@@ -263,6 +268,14 @@ contract Minter is Lockable {
     }
 
     if (i >= collateralAddresses.length) {
+      return false;
+    }
+  }
+
+  function isAdmin() public view returns (bool) {
+    if (msg.sender == _contractCreator) {
+      return true;
+    } else {
       return false;
     }
   }
