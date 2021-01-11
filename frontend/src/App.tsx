@@ -66,7 +66,7 @@ const App = () => {
   const [minterContract, setMinterContract] = useState<Minter>()
   const { enqueueSnackbar } = useSnackbar()
 
-  if (!window.ethereum) {
+  if (window.ethereum) {
     window.ethereum.on('chainChanged', (chainId: string) => {
       if (!window.ethereum) return
       setNetwork(getNetworkNameFromId(window.ethereum.chainId))
