@@ -42,6 +42,7 @@ contract Minter is Lockable {
   );
   event Mint(address indexed user, uint256 value);
   event Burn(address indexed user, uint256 value);
+  event ApprovedAllowance(address indexed user, uint256 value);
 
   /****************************************
    *               MODIFIERS              *
@@ -64,12 +65,23 @@ contract Minter is Lockable {
     initialized = true;
   }
 
+  function approveCollateralSpend(address _collateralAddress, uint256 amount)
+    public
+    isInitialized()
+    nonReentrant()
+  {
+    IERC20 token = ExpandedIERC20(_collateralAddress);
+    token.approve(address(this), amount);
+
+    emit ApprovedAllowance(_collateralAddress, amount);
+  }
+
   function depositByCollateralAddress(
     uint256 _collateralAmount,
     address _collateralAddress
   ) public isInitialized() nonReentrant() {
     // Check if collateral amount is greater than 0
-    require(_collateralAmount > 0, 'Invalid Collateral');
+    require(_collateralAmount > 0, 'Invalid collateral amount.');
 
     // Check if collateral is whitelisted
     require(
@@ -117,6 +129,14 @@ contract Minter is Lockable {
     uint256 _tokenAmount,
     address _collateralAddress
   ) public payable isInitialized() nonReentrant() {
+    // Check if collateral amount is greater than 0
+    require(_tokenAmount > 0, 'Invalid token amount.');
+
+    // Check if collateral is whitelisted
+    require(
+      isWhitelisted(_collateralAddress) == true,
+      'This is not allowed as collateral.'
+    );
     // Collateral token
     IERC20 token = ExpandedIERC20(_collateralAddress);
     // PHM token
@@ -161,6 +181,7 @@ contract Minter is Lockable {
     _removeCollateralBalances(redeemedCollateral, _collateralAddress);
 
     // Transfer collateral from Minter contract to msg.sender
+    // TODO: check this
 
     token.safeTransferFrom(address(this), msg.sender, redeemedCollateral);
 
@@ -210,6 +231,7 @@ contract Minter is Lockable {
   {
     if (isWhitelisted(collateralAddress) == false) {
       collateralAddresses.push(collateralAddress);
+      IERC20 token = ExpandedIERC20(_collateralAddress);
     }
   }
 

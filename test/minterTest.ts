@@ -7,6 +7,7 @@ import {
   isValidContract,
   isValidERC20
 } from './util/DeployContract'
+import { checkDepositEvent, checkWithdrawalEvent } from './util/CheckEvent'
 
 /**
  * Assert vs expect vs should:
@@ -65,6 +66,7 @@ const collateralToMint = 3333
 const collateralDeposit = 150
 const expectedPHM = collateralDeposit * 50
 const collateralToRedeem = 100
+const expectedConvertedCollateral = 2
 
 // single run per test setup
 before(async () => {
@@ -155,15 +157,15 @@ before(async () => {
     // add  minterContract as minter
     await daiContract.addMinter(minterContract.address)
 
-    // add minterContract as minter
+    // add minterContract as minter and burner of phm contract
     await phmContract.addMinter(minterContract.address)
     await phmContract.addBurner(minterContract.address)
 
     // approve contract to spend collateral tokens
     await daiContract.approve(minterContract.address, 1000000)
     await phmContract.approve(minterContract.address, 1000000)
-    await daiContract.approve(contractCreatorAccount.address, 100000)
     await phmContract.approve(contractCreatorAccount.address, 100000)
+    await minterContract.approveCollateralSpend(daiContract.address, 100000)
   })
 
   it('Can deploy a non-collateral ERC token for testing', async () => {
@@ -264,13 +266,21 @@ describe('Can accept collateral and mint synthetic', async () => {
       collateralDeposit,
       `collateral deposit is not equal to ${collateralDeposit}`
     )
+
+    expect(
+      await checkDepositEvent(
+        minterContract,
+        contractCreatorAccount.address,
+        daiContract.address,
+        collateralDeposit
+      )
+    ).to.be.true
   })
 
   it('sending non collateral ERC20 to deposit func should not mint PHM, not return PHM to msg.sender and return error', async () => {
     // check that noncollateral contract is not whitelsited in the contract
     expect(await minterContract.isWhitelisted(nonCollateralAddress)).to.be.false
 
-    // expect an error in transaction
     try {
       await minterContract.depositByCollateralAddress(
         collateralDeposit,
@@ -283,95 +293,91 @@ describe('Can accept collateral and mint synthetic', async () => {
       )
     }
   })
+
+  it('sending invalid collateral amount to deposit func should not mint PHM, not return PHM to msg.sender and return error', async () => {
+    try {
+      await minterContract.depositByCollateralAddress(0, nonCollateralAddress)
+      assert(false, 'Error is not thrown')
+    } catch (err) {
+      expect(err.message).to.be.equal(
+        'VM Exception while processing transaction: revert Invalid collateral amount.'
+      )
+    }
+  })
 })
 
 describe('Can redeem synth for original ERC20 collateral', async () => {
-  beforeEach(async () => {
-    // whitelist DAI collateral address
-    await minterContract.addCollateralAddress(daiContract.address)
-
-    // add  minterContract as minter
-    await daiContract.addMinter(minterContract.address)
-
-    // add minterContract as minter
-    await phmContract.addMinter(minterContract.address)
-
-    // approve contract to spend collateral tokens
-    await daiContract.approve(minterContract.address, 1000000)
-    await phmContract.increaseAllowance(minterContract.address, 1000000)
-    await daiContract.approve(contractCreatorAccount.address, 100000)
-    await phmContract.increaseAllowance(contractCreatorAccount.address, 100000)
-  })
-
   it('sending synth and calling redeem func should burn synth, return ERC20 collateral to msg.sender', async () => {
     // Temporary Debug log
-    console.log(
-      'PHM Minter Initial',
-      BigNumber.from(
-        await phmContract.balanceOf(minterContract.address)
-      ).toNumber()
-    )
-
-    console.log(
-      'DAI Minter Initial ',
-      BigNumber.from(
-        await daiContract.balanceOf(minterContract.address)
-      ).toNumber()
-    )
-
-    console.log(
-      'PHM Account Initial',
+    expect(
       BigNumber.from(
         await phmContract.balanceOf(contractCreatorAccount.address)
       ).toNumber()
-    )
-
-    console.log(
-      'DAI Account Initial',
-      BigNumber.from(
-        await daiContract.balanceOf(contractCreatorAccount.address)
-      ).toNumber()
-    )
+    ).to.equal(expectedPHM, `user current balance is not ${expectedPHM}`)
 
     const redeemTxn = await minterContract.redeemByCollateralAddress(
-      50,
+      collateralToRedeem,
       collateralAddress
     )
 
     await redeemTxn.wait()
 
-    // Temporary Debug log
-    console.log(
-      'PHM Minter After',
-      BigNumber.from(
-        await phmContract.balanceOf(minterContract.address)
-      ).toNumber()
-    )
-
-    console.log(
-      'DAI Minter After ',
-      BigNumber.from(
-        await daiContract.balanceOf(minterContract.address)
-      ).toNumber()
-    )
-
-    console.log(
-      'PHM Account After',
+    expect(
       BigNumber.from(
         await phmContract.balanceOf(contractCreatorAccount.address)
       ).toNumber()
+    ).to.equal(
+      expectedPHM - collateralToRedeem,
+      `user current balance is not ${expectedPHM - collateralToRedeem}`
     )
 
-    console.log(
-      'DAI Account After',
+    expect(
       BigNumber.from(
-        await daiContract.balanceOf(contractCreatorAccount.address)
+        await daiContract.balanceOf(minterContract.address)
       ).toNumber()
+    ).to.equal(
+      collateralDeposit - expectedConvertedCollateral,
+      `user current balance is not ${
+        collateralDeposit - expectedConvertedCollateral
+      }`
     )
+
+    expect(
+      await checkWithdrawalEvent(
+        minterContract,
+        contractCreatorAccount.address,
+        daiContract.address,
+        expectedConvertedCollateral
+      )
+    ).to.be.true
   })
-  it(
-    'sending invalid synth and calling redeem func should not burn synth, not return ERC20 collateral to msg.sender, and return err'
-  )
+  it('sending invalid synth and calling redeem func should not burn synth, not return ERC20 collateral to msg.sender, and return err', async () => {
+    // check that noncollateral contract is not whitelsited in the contract
+    expect(await minterContract.isWhitelisted(nonCollateralAddress)).to.be.false
+
+    try {
+      await minterContract.redeemByCollateralAddress(
+        collateralToRedeem,
+        nonCollateralAddress
+      )
+      assert(false, 'Error is not thrown')
+    } catch (err) {
+      expect(err.message).to.be.equal(
+        'VM Exception while processing transaction: revert This is not allowed as collateral.'
+      )
+    }
+  })
+
+  it('sending invalid synth token amount and calling redeem func should not burn synth, not return ERC20 collateral to msg.sender, and return err', async () => {
+    try {
+      await minterContract.redeemByCollateralAddress(0, nonCollateralAddress)
+      assert(false, 'Error is not thrown')
+    } catch (err) {
+      expect(err.message).to.be.equal(
+        'VM Exception while processing transaction: revert Invalid token amount.'
+      )
+    }
+  })
 })
 
 describe('Can transfer synth to recipient wallet', () => {})
@@ -380,7 +386,6 @@ describe('Can earn HALO on transfer to whitelisted AMM address', () => {})
 
 describe('Can call view functions from the contract', () => {
   it('Can get the balance of a collateral inside the contract', async () => {
-    // TODO: Test case after redeem test is done
     expect(
       BigNumber.from(
         await minterContract.getTotalCollateralByCollateralAddress(
@@ -390,7 +395,6 @@ describe('Can call view functions from the contract', () => {
     ).to.be.greaterThan(0)
   })
   it('Can get the user balance of the collateral inside the contract', async () => {
-    // TODO: Test case after redeem test is done
     expect(
       BigNumber.from(
         await minterContract.getUserCollateralByCollateralAddress(
@@ -408,8 +412,14 @@ describe('Can call view functions from the contract', () => {
     ).to.be.equal(50, 'Conversion rate is not equal to 50')
   })
   it('Can whitelist a collateral address', async () => {
+    await minterContract.addCollateralAddress(dumContract.address)
+    expect(await minterContract.isWhitelisted(dumContract.address)).to.be.true
+  })
+  it('Can remove a collateral address to the whitelist', async () => {
+    await minterContract.removeCollateralAddress(dumContract.address)
+    expect(await minterContract.isWhitelisted(dumContract.address)).to.be.false
+  })
+  it('Can check if the given collateral address is in the whitelist', async () => {
     expect(await minterContract.isWhitelisted(daiContract.address)).to.be.true
   })
-  it('Can remove a collateral address to the whitelist', async () => {})
-  it('Can check if the given collateral address is in the whitelist', async () => {})
 })
