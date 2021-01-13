@@ -1,6 +1,13 @@
 import { ethers } from 'hardhat'
 
-import { Contract } from 'ethers'
+import { BigNumber, Contract } from 'ethers'
+import { expect } from 'chai'
+import {
+  BurnEvent,
+  DepositedCollateralEvent,
+  MintEvent,
+  WithdrawnCollateralEvent
+} from '../types/types'
 
 export const checkDepositEvent = async (
   contract: Contract,
@@ -8,35 +15,34 @@ export const checkDepositEvent = async (
   address: string,
   collateralValue: number
 ): Promise<boolean> => {
-  let count = 0
-  let listener = new Promise<void>((resolve, reject) => {
-    try {
+  let depositEvent = new Promise<DepositedCollateralEvent>(
+    (resolve, reject) => {
+      console.log('depositing')
       contract.on(
-        contract.filters.DepositedCollateral(sender),
+        'DepositedCollateral',
         (user, collateral, collateralAddress) => {
-          if (
-            user == sender &&
-            collateral == collateralValue &&
-            address == collateralAddress
-          ) {
-            count += 1
-          }
-
-          resolve()
+          resolve({
+            user: user,
+            collateral: collateral,
+            collateralAddress: collateralAddress
+          })
         }
       )
-    } catch (err) {
-      console.error(err)
-      reject()
-    }
-  })
 
-  await listener
-  if (count > 0) {
-    return true
-  } else {
-    return false
-  }
+      setTimeout(() => {
+        reject(new Error('timeout'))
+      }, 60000)
+    }
+  )
+  const event = await depositEvent
+
+  console.log(`${event.user}, ${event.collateral} , ${event.collateralAddress}`)
+  expect(event.user).to.be.equal(sender)
+  expect(event.collateral).to.be.equal(collateralValue)
+  expect(event.collateralAddress).to.be.equal(address)
+  contract.removeAllListeners()
+
+  return true
 }
 
 export const checkWithdrawalEvent = async (
@@ -45,33 +51,84 @@ export const checkWithdrawalEvent = async (
   address: string,
   collateralValue: number
 ): Promise<boolean> => {
-  let count = 0
-  let listener = new Promise<void>((resolve, reject) => {
-    try {
+  let withdrawalEvent = new Promise<WithdrawnCollateralEvent>(
+    (resolve, reject) => {
       contract.on(
-        contract.filters.WithdrawnCollateral(sender),
+        'WithdrawnCollateral',
         (user, collateral, collateralAddress) => {
-          if (
-            user == sender &&
-            collateral == collateralValue &&
-            address == collateralAddress
-          ) {
-            count += 1
-          }
-
-          resolve()
+          resolve({
+            user: user,
+            collateral: collateral,
+            collateralAddress: collateralAddress
+          })
         }
       )
-    } catch (err) {
-      console.error(err)
-      reject()
+
+      setTimeout(() => {
+        reject(new Error('timeout'))
+      }, 60000)
     }
+  )
+  const event = await withdrawalEvent
+  console.log(`${event.user}, ${event.collateral} , ${event.collateralAddress}`)
+  expect(event.user).to.be.equal(sender)
+  expect(event.collateral).to.be.equal(collateralValue)
+  expect(event.collateralAddress).to.be.equal(address)
+  contract.removeAllListeners()
+
+  return true
+}
+
+export const checkMintEvent = async (
+  contract: Contract,
+  sender: string,
+  collateralValue: number
+): Promise<boolean> => {
+  const mintEvent = new Promise<MintEvent>((resolve, reject) => {
+    contract.on('Mint', (user, value) => {
+      resolve({
+        user: user,
+        value: value
+      })
+    })
+
+    setTimeout(() => {
+      reject(new Error('timeout'))
+    }, 60000)
   })
 
-  await listener
-  if (count > 0) {
-    return true
-  } else {
-    return false
-  }
+  const event = await mintEvent
+  console.log(event.user)
+  expect(event.user).to.be.equal(sender)
+  expect(event.value).to.be.equal(collateralValue)
+  contract.removeAllListeners()
+
+  return true
+}
+
+export const checkBurnEvent = async (
+  contract: Contract,
+  sender: string,
+  collateralValue: number
+): Promise<boolean> => {
+  const burnEvent = new Promise<BurnEvent>((resolve, reject) => {
+    contract.on('Mint', (user, value) => {
+      resolve({
+        user: user,
+        value: value
+      })
+    })
+
+    setTimeout(() => {
+      reject(new Error('timeout'))
+    }, 60000)
+  })
+
+  const event = await burnEvent
+  console.log(event.user)
+  expect(event.user).to.be.equal(sender)
+  expect(event.value).to.be.equal(collateralValue)
+  contract.removeAllListeners()
+
+  return true
 }

@@ -5,9 +5,15 @@ import { BigNumber, Contract } from 'ethers'
 import {
   deployContract,
   isValidContract,
+  isValidContractFactory,
   isValidERC20
 } from './util/DeployContract'
-import { checkDepositEvent, checkWithdrawalEvent } from './util/CheckEvent'
+import {
+  checkDepositEvent,
+  checkMintEvent,
+  checkWithdrawalEvent
+} from './util/CheckEvent'
+import { doesNotMatch } from 'assert'
 
 /**
  * Assert vs expect vs should:
@@ -18,7 +24,7 @@ import { checkDepositEvent, checkWithdrawalEvent } from './util/CheckEvent'
 // Helper vars
 let accounts,
   otherUserAddress: string,
-  userAddress: string,
+  userAddress: SignerWithAddress,
   collateralAddress: string,
   nonCollateralAddress: string,
   expandedERC20LabelString: string = 'ExpandedERC20',
@@ -146,8 +152,14 @@ before(async () => {
     let contractFactory = await ethers.getContractFactory(
       minterContractLabelString
     )
+
+    expect(await isValidContractFactory(contractFactory)).to.be.true
+
     minterContract = await contractFactory.deploy(phmContract.address)
     minterContract = await minterContract.deployed()
+
+    expect(await isValidContract(minterContract, minterContractLabelString)).to
+      .be.true
 
     await minterContract.initialize()
 
@@ -162,10 +174,10 @@ before(async () => {
     await phmContract.addBurner(minterContract.address)
 
     // approve contract to spend collateral tokens
-    await daiContract.approve(minterContract.address, 1000000)
-    await phmContract.approve(minterContract.address, 1000000)
-    await phmContract.approve(contractCreatorAccount.address, 100000)
-    await minterContract.approveCollateralSpend(daiContract.address, 100000)
+    await daiContract.approve(minterContract.address, 10000)
+    await phmContract.approve(minterContract.address, 10000)
+    await phmContract.approve(contractCreatorAccount.address, 10000)
+    await minterContract.approveCollateralSpend(daiContract.address, 10000)
   })
 
   it('Can deploy a non-collateral ERC token for testing', async () => {
@@ -268,6 +280,14 @@ describe('Can accept collateral and mint synthetic', async () => {
     )
 
     expect(
+      await checkMintEvent(
+        minterContract,
+        contractCreatorAccount.address,
+        expectedPHM
+      )
+    ).to.be.true
+
+    expect(
       await checkDepositEvent(
         minterContract,
         contractCreatorAccount.address,
@@ -308,7 +328,6 @@ describe('Can accept collateral and mint synthetic', async () => {
 
 describe('Can redeem synth for original ERC20 collateral', async () => {
   it('sending synth and calling redeem func should burn synth, return ERC20 collateral to msg.sender', async () => {
-    // Temporary Debug log
     expect(
       BigNumber.from(
         await phmContract.balanceOf(contractCreatorAccount.address)
