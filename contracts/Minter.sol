@@ -10,11 +10,12 @@ import './implementation/Lockable.sol';
 
 contract Minter is Lockable {
   using SafeERC20 for IERC20;
+  using SafeERC20 for SyntheticToken;
   using SafeMath for uint256;
-  // TODO: Do encapsulation private internal functions on get
 
   bool private initialized;
   address private _phmAddress;
+  address private _contractCreator;
 
   // stores the collateral address
   address private _collateralAddress;
@@ -35,20 +36,15 @@ contract Minter is Lockable {
     uint256 collateral,
     address collateralAddress
   );
+  event WithdrawnCollateral(
+    address indexed user,
+    uint256 collateral,
+    address collateralAddress
+  );
   event Mint(address indexed user, uint256 value);
-  event RequestWithdrawal(
-    address user,
-    uint256 collateral,
-    address collateralAddresss,
-    uint256 requestPassTimeStamp
-  );
-  event RequestWithdrawalExecuted(
-    address user,
-    uint256 collateral,
-    address collateralAddress,
-    uint256 exchangeRate,
-    uint256 requestPassTimeStamp
-  );
+  event Burn(address indexed user, uint256 value);
+  event ApprovedAllowance(address indexed user, uint256 value);
+
   /****************************************
    *               MODIFIERS              *
    ****************************************/
@@ -62,12 +58,27 @@ contract Minter is Lockable {
    *           PUBLIC FUNCTIONS           *
    ****************************************/
 
-  constructor(address phmAddress) public {
+  constructor(address phmAddress) public nonReentrant() {
     _phmAddress = phmAddress;
+    _contractCreator = msg.sender;
   }
 
   function initialize() public nonReentrant() {
     initialized = true;
+  }
+
+  function approveCollateralSpend(address _collateralAddress, uint256 amount)
+    public
+    isInitialized()
+    nonReentrant()
+  {
+    // TODO: Add role/admin, check MultiRole.sol
+
+    require(isAdmin() == true, 'Sender is not allowed to do this action');
+    IERC20 token = ExpandedIERC20(_collateralAddress);
+    token.approve(address(this), amount);
+
+    emit ApprovedAllowance(_collateralAddress, amount);
   }
 
   function depositByCollateralAddress(
@@ -75,7 +86,7 @@ contract Minter is Lockable {
     address _collateralAddress
   ) public isInitialized() nonReentrant() {
     // Check if collateral amount is greater than 0
-    require(_collateralAmount > 0, 'Invalid Collateral');
+    require(_collateralAmount > 0, 'Invalid collateral amount.');
 
     // Check if collateral is whitelisted
     require(
@@ -111,10 +122,79 @@ contract Minter is Lockable {
     uint256 mintedTokens = _collateralAmount.mul(phpDaiStubExchangeRate);
 
     // TODO: replace with UMA implementation
+    // 1 - Send DAI to UMA financial contract
+    // 2 - Confirm minting event
     phmToken.mint(msg.sender, mintedTokens);
 
     // emit Mint event
     emit Mint(msg.sender, mintedTokens);
+  }
+
+  function redeemByCollateralAddress(
+    uint256 _tokenAmount,
+    address _collateralAddress
+  ) public payable isInitialized() nonReentrant() {
+    // Check if collateral amount is greater than 0
+    require(_tokenAmount > 0, 'Invalid token amount.');
+
+    // Check if collateral is whitelisted
+    require(
+      isWhitelisted(_collateralAddress) == true,
+      'This is not allowed as collateral.'
+    );
+    // Collateral token
+    IERC20 token = ExpandedIERC20(_collateralAddress);
+    // PHM token
+    SyntheticToken phmToken = SyntheticToken(_phmAddress);
+
+    // Check if collateral amount is greater than 0
+    require(_tokenAmount > 0, 'Invalid token amount');
+    require(
+      phmToken.balanceOf(msg.sender) >= _tokenAmount,
+      'Not enough PHM balance'
+    );
+
+    // TODO: UMA -- burn phm token
+    // user transfer PHM to contract for burning
+    phmToken.transferFrom(msg.sender, address(this), _tokenAmount);
+
+    require(
+      phmToken.balanceOf(address(this)) >= _tokenAmount,
+      'PHM transfer failed.'
+    );
+
+    phmToken.burn(_tokenAmount);
+
+    // Emit the burning/ redemption of PHM
+    emit Burn(msg.sender, _tokenAmount);
+
+    // TODO: UMA -- check the conversion Rate
+    uint256 redeemedCollateral = _tokenAmount.div(phpDaiStubExchangeRate);
+
+    // TODO: Integrate with UMA  -- Check if redeemedCollateral is less than or equal to total user collateral
+    require(
+      getUserCollateralByCollateralAddress(_collateralAddress) >=
+        redeemedCollateral,
+      'Not enough collateral from user'
+    );
+
+    require(
+      getTotalCollateralByCollateralAddress(_collateralAddress) > 0,
+      'No collateral in contract'
+    );
+    // Remove collateral from record
+    _removeCollateralBalances(redeemedCollateral, _collateralAddress);
+
+    // Transfer collateral from Minter contract to msg.sender
+    // TODO: check this
+
+    token.safeTransferFrom(address(this), msg.sender, redeemedCollateral);
+
+    emit WithdrawnCollateral(
+      msg.sender,
+      redeemedCollateral,
+      _collateralAddress
+    );
   }
 
   /**
@@ -156,6 +236,7 @@ contract Minter is Lockable {
   {
     if (isWhitelisted(collateralAddress) == false) {
       collateralAddresses.push(collateralAddress);
+      IERC20 token = ExpandedIERC20(_collateralAddress);
     }
   }
 
@@ -187,6 +268,14 @@ contract Minter is Lockable {
     }
 
     if (i >= collateralAddresses.length) {
+      return false;
+    }
+  }
+
+  function isAdmin() public view returns (bool) {
+    if (msg.sender == _contractCreator) {
+      return true;
+    } else {
       return false;
     }
   }

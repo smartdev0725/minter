@@ -4,4 +4,32 @@ type TokenDetails = {
   decimals: string
 }
 
-export type { TokenDetails }
+type DepositedCollateralEvent = {
+  user: string
+  collateral: number
+  collateralAddress: string
+}
+
+type WithdrawnCollateralEvent = {
+  user: string
+  collateral: number
+  collateralAddress: string
+}
+
+type MintEvent = {
+  user: string
+  value: number
+}
+
+type BurnEvent = {
+  user: string
+  value: number
+}
+
+export type {
+  TokenDetails,
+  DepositedCollateralEvent,
+  WithdrawnCollateralEvent,
+  MintEvent,
+  BurnEvent
+}
