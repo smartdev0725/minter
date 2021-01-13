@@ -13,11 +13,11 @@ export const checkDepositEvent = async (
   contract: Contract,
   sender: string,
   address: string,
-  collateralValue: number
+  collateralValueDeposit: number,
+  collateralValueMint: number
 ): Promise<boolean> => {
   let depositEvent = new Promise<DepositedCollateralEvent>(
     (resolve, reject) => {
-      console.log('depositing')
       contract.on(
         'DepositedCollateral',
         (user, collateral, collateralAddress) => {
@@ -34,12 +34,29 @@ export const checkDepositEvent = async (
       }, 60000)
     }
   )
-  const event = await depositEvent
 
-  console.log(`${event.user}, ${event.collateral} , ${event.collateralAddress}`)
-  expect(event.user).to.be.equal(sender)
-  expect(event.collateral).to.be.equal(collateralValue)
-  expect(event.collateralAddress).to.be.equal(address)
+  const mintEvent = new Promise<MintEvent>((resolve, reject) => {
+    contract.on('Mint', (user, value) => {
+      resolve({
+        user: user,
+        value: value
+      })
+    })
+
+    setTimeout(() => {
+      reject(new Error('timeout'))
+    }, 60000)
+  })
+
+  const eventMint = await mintEvent
+  expect(eventMint.user).to.be.equal(sender)
+  expect(eventMint.value).to.be.equal(collateralValueMint)
+
+  const eventDeposit = await depositEvent
+  expect(eventDeposit.user).to.be.equal(sender)
+  expect(eventDeposit.collateral).to.be.equal(collateralValueDeposit)
+  expect(eventDeposit.collateralAddress).to.be.equal(address)
+
   contract.removeAllListeners()
 
   return true
@@ -49,7 +66,8 @@ export const checkWithdrawalEvent = async (
   contract: Contract,
   sender: string,
   address: string,
-  collateralValue: number
+  collateralValue: number,
+  collateralToRedeem: number
 ): Promise<boolean> => {
   let withdrawalEvent = new Promise<WithdrawnCollateralEvent>(
     (resolve, reject) => {
@@ -69,50 +87,9 @@ export const checkWithdrawalEvent = async (
       }, 60000)
     }
   )
-  const event = await withdrawalEvent
-  console.log(`${event.user}, ${event.collateral} , ${event.collateralAddress}`)
-  expect(event.user).to.be.equal(sender)
-  expect(event.collateral).to.be.equal(collateralValue)
-  expect(event.collateralAddress).to.be.equal(address)
-  contract.removeAllListeners()
 
-  return true
-}
-
-export const checkMintEvent = async (
-  contract: Contract,
-  sender: string,
-  collateralValue: number
-): Promise<boolean> => {
-  const mintEvent = new Promise<MintEvent>((resolve, reject) => {
-    contract.on('Mint', (user, value) => {
-      resolve({
-        user: user,
-        value: value
-      })
-    })
-
-    setTimeout(() => {
-      reject(new Error('timeout'))
-    }, 60000)
-  })
-
-  const event = await mintEvent
-  console.log(event.user)
-  expect(event.user).to.be.equal(sender)
-  expect(event.value).to.be.equal(collateralValue)
-  contract.removeAllListeners()
-
-  return true
-}
-
-export const checkBurnEvent = async (
-  contract: Contract,
-  sender: string,
-  collateralValue: number
-): Promise<boolean> => {
   const burnEvent = new Promise<BurnEvent>((resolve, reject) => {
-    contract.on('Mint', (user, value) => {
+    contract.on('Burn', (user, value) => {
       resolve({
         user: user,
         value: value
@@ -124,10 +101,14 @@ export const checkBurnEvent = async (
     }, 60000)
   })
 
-  const event = await burnEvent
-  console.log(event.user)
-  expect(event.user).to.be.equal(sender)
-  expect(event.value).to.be.equal(collateralValue)
+  const eventBurn = await burnEvent
+  expect(eventBurn.user).to.be.equal(sender)
+  expect(eventBurn.value).to.be.equal(collateralToRedeem)
+
+  const eventWithdrawal = await withdrawalEvent
+  expect(eventWithdrawal.user).to.be.equal(sender)
+  expect(eventWithdrawal.collateral).to.be.equal(collateralValue)
+  expect(eventWithdrawal.collateralAddress).to.be.equal(address)
   contract.removeAllListeners()
 
   return true

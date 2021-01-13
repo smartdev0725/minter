@@ -8,11 +8,7 @@ import {
   isValidContractFactory,
   isValidERC20
 } from './util/DeployContract'
-import {
-  checkDepositEvent,
-  checkMintEvent,
-  checkWithdrawalEvent
-} from './util/CheckEvent'
+import { checkDepositEvent, checkWithdrawalEvent } from './util/CheckEvent'
 import { doesNotMatch } from 'assert'
 
 /**
@@ -280,19 +276,12 @@ describe('Can accept collateral and mint synthetic', async () => {
     )
 
     expect(
-      await checkMintEvent(
-        minterContract,
-        contractCreatorAccount.address,
-        expectedPHM
-      )
-    ).to.be.true
-
-    expect(
       await checkDepositEvent(
         minterContract,
         contractCreatorAccount.address,
         daiContract.address,
-        collateralDeposit
+        collateralDeposit,
+        expectedPHM
       )
     ).to.be.true
   })
@@ -366,7 +355,8 @@ describe('Can redeem synth for original ERC20 collateral', async () => {
         minterContract,
         contractCreatorAccount.address,
         daiContract.address,
-        expectedConvertedCollateral
+        expectedConvertedCollateral,
+        collateralToRedeem
       )
     ).to.be.true
   })
