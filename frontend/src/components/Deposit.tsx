@@ -17,6 +17,7 @@ import SwapVertIcon from '@material-ui/icons/SwapVert'
 import { ExpandedIERC20, Minter } from '../typechain'
 import contractAddressObject from '../contracts/contract-address.json'
 import { ChainError } from '../config/enums'
+import { parseEther, parseUnits } from 'ethers/lib/utils'
 
 const useStyles = makeStyles({
   insufficientBalance: {
@@ -81,11 +82,13 @@ const Deposit = ({
     setIsProcessing(true)
 
     try {
-      await collateralContract.approve(contractAddressObject.Minter, daiDeposit)
+      const amount = parseEther(`${daiDeposit}`)
+
+      await collateralContract.approve(contractAddressObject.Minter, amount)
       console.log('Approved spend collateral tokens')
 
       const tx = await minterContract.depositByCollateralAddress(
-        daiDeposit,
+        amount,
         contractAddressObject.DAI
       )
       console.log('Deposited collateral tokens')

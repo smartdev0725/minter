@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import {
   Box,
   Typography,
@@ -11,18 +11,21 @@ import { formatBalance, shortenAddress } from '../utils/StringUtils'
 import ETHIcon from '../assets/eth.svg'
 import DAIIcon from '../assets/dai.svg'
 import PHMIcon from '../assets/phm.svg'
-import FileCopyIcon from '@material-ui/icons/FileCopy'
+import DisconnectIcon from '@material-ui/icons/ExitToApp'
 import { Tokens } from '../config/enums'
 import { Balances } from '../config/types'
 
 interface AddressAndBalanceProps {
   address: string
   balances: Balances
+  onDisconnect: () => void
 }
 
-const AddressAndBalance = ({ address, balances }: AddressAndBalanceProps) => {
-  const [copied, setCopied] = useState(false)
-
+const AddressAndBalance = ({
+  address,
+  balances,
+  onDisconnect
+}: AddressAndBalanceProps) => {
   return (
     <div>
       <Box mb={2}>
@@ -30,17 +33,9 @@ const AddressAndBalance = ({ address, balances }: AddressAndBalanceProps) => {
         <Typography>
           {shortenAddress(address)}
           &nbsp;
-          <Tooltip title={copied ? 'Copied' : 'Copy'}>
-            <IconButton
-              onClick={() => {
-                navigator.clipboard.writeText(address)
-                setCopied(true)
-                setTimeout(() => {
-                  setCopied(false)
-                }, 2000)
-              }}
-            >
-              <FileCopyIcon color="primary" fontSize="small" />
+          <Tooltip title="Disconnect">
+            <IconButton onClick={onDisconnect}>
+              <DisconnectIcon color="error" fontSize="small" />
             </IconButton>
           </Tooltip>
         </Typography>

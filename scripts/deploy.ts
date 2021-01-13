@@ -3,6 +3,7 @@ import * as fs from 'fs'
 import * as fse from 'fs-extra'
 import { TokenFactory } from '../typechain/TokenFactory'
 import { Contract } from 'ethers'
+import { parseEther } from 'ethers/lib/utils'
 
 const main = async () => {
   const [deployer, testUser] = await ethers.getSigners()
@@ -18,7 +19,7 @@ const main = async () => {
   let daiContract = await daiFactory.deploy('DAI', 'DAI', '18')
   daiContract = await daiContract.deployed()
   await daiContract.addMinter(deployer.address)
-  await daiContract.mint(testUser.address, 1000)
+  await daiContract.mint(testUser.address, parseEther('1000'))
 
   // Deploy PHM contract (by deploying TokenFactory & calling TokenFactory.createToken())
   const tokenFactory = await ethers.getContractFactory('TokenFactory')

@@ -1,7 +1,7 @@
 import Web3Modal from 'web3modal'
 import { Web3Provider } from '@ethersproject/providers'
 import React, { useEffect, useState } from 'react'
-// import WalletConnectProvider from '@walletconnect/web3-provider'
+import WalletConnectProvider from '@walletconnect/web3-provider'
 import {
   Box,
   Button,
@@ -26,7 +26,6 @@ import AddressAndBalance from './components/AddressAndBalance'
 import { Alert } from '@material-ui/lab'
 import { useSnackbar } from 'notistack'
 import { Balances } from './config/types'
-import { formatUnits } from 'ethers/lib/utils'
 
 declare global {
   interface Window {
@@ -37,12 +36,19 @@ declare global {
 const web3Modal = new Web3Modal({
   cacheProvider: true,
   providerOptions: {
-    // walletconnect: {
-    //   package: WalletConnectProvider, // required
-    //   options: {
-    //     infuraId: 'fca9914262ce4cb08e533470cdd530ba'
-    //   }
-    // }
+    // metamask enabled by default so no need to specify here
+    walletconnect: {
+      package: WalletConnectProvider,
+      options: {
+        rpc: {
+          /**
+           * The RPC URL mapping should be indexed by chainId and it requires at least one value
+           * ChainId's: Mainnet (1), Ropsten (3), Rinkeby(4), Goerli (5) and Kovan (42)
+           **/
+          1: 'http://localhost:8545'
+        }
+      }
+    }
   }
 })
 
@@ -68,6 +74,7 @@ const App = () => {
 
   if (window.ethereum) {
     window.ethereum.on('chainChanged', (chainId: string) => {
+      console.log('chainChanged -> ', chainId)
       if (!window.ethereum) return
       setNetwork(getNetworkNameFromId(window.ethereum.chainId))
     })
@@ -81,6 +88,7 @@ const App = () => {
     const getUserAddressAndBalance = async () => {
       const signer = injectedProvider.getSigner()
       const address = await signer.getAddress()
+      console.log('user address:', address)
       setUserAddress(address)
 
       const bal = await injectedProvider.getBalance(address)
@@ -156,6 +164,16 @@ const App = () => {
     }
   }
 
+  const disconnect = async () => {
+    if (!injectedProvider) return
+
+    await web3Modal.clearCachedProvider()
+
+    setInjectedProvider(undefined)
+    setUserAddress(undefined)
+    setBalances({ ETH: 0, PHM: 0, DAI: 0 })
+  }
+
   const watch = (provider: any) => {
     // Subscribe to accounts change
     provider.on('accountsChanged', (accounts: string[]) => {
@@ -168,15 +186,10 @@ const App = () => {
       setInjectedProvider(new Web3Provider(provider))
     })
 
-    // Subscribe to provider connection
-    provider.on('connect', (info: { chainId: number }) => {
-      console.log('provider.connected!', info)
-    })
-
     // Subscribe to provider disconnection
     provider.on('disconnect', (error: { code: number; message: string }) => {
       console.log('provider.disconnected!', error)
-      setInjectedProvider(undefined)
+      disconnect()
     })
   }
 
@@ -185,21 +198,25 @@ const App = () => {
     let daiBalance = balances.DAI
 
     if (phmContract) {
-      const totalSupply = await phmContract.totalSupply()
-      console.log('totalSupply:', totalSupply)
-      setPhmTotalSupply(totalSupply.toNumber())
+      try {
+        const totalSupply = await phmContract.totalSupply()
+        console.log('totalSupply:', totalSupply)
+        setPhmTotalSupply(bigNumberToFloat(totalSupply))
 
-      if (userAddress) {
-        const bal = await phmContract.balanceOf(userAddress)
-        console.log('PHM balance:', bal)
-        phmBalance = bal.toNumber()
+        if (userAddress) {
+          const bal = await phmContract.balanceOf(userAddress)
+          console.log('PHM balance:', bal)
+          phmBalance = bigNumberToFloat(bal)
+        }
+      } catch (err) {
+        console.error(err)
       }
     }
 
     if (daiContract && userAddress) {
       const bal = await daiContract.balanceOf(userAddress)
       console.log('DAI balance:', bal)
-      daiBalance = bal.toNumber()
+      daiBalance = bigNumberToFloat(bal)
     }
 
     setBalances({ ...balances, PHM: phmBalance, DAI: daiBalance })
@@ -270,6 +287,7 @@ const App = () => {
                     <AddressAndBalance
                       address={userAddress}
                       balances={balances}
+                      onDisconnect={disconnect}
                     />
                   ) : (
                     <>
@@ -323,11 +341,13 @@ const App = () => {
                   >
                     Deposit
                   </Button>
-                  <Box mt={1}>
-                    <Typography variant="caption">
-                      1 DAI = {conversionRate.toFixed(2)} PHM
-                    </Typography>
-                  </Box>
+                  {userAddress && (
+                    <Box mt={1}>
+                      <Typography variant="caption">
+                        1 DAI = {conversionRate.toFixed(2)} PHM
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               </Box>
             </Paper>

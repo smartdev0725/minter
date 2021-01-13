@@ -14,7 +14,6 @@ export const shortenAddress = (address: string) => {
  */
 export const bigNumberToFloat = (bNumber: BigNumber) => {
   const etherBalance = formatEther(bNumber)
-  parseFloat(etherBalance).toFixed(2)
   return parseFloat(etherBalance)
 }
 
