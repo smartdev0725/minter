@@ -7,6 +7,7 @@ import {
   Button,
   CircularProgress,
   Container,
+  Grid,
   Paper,
   Typography
 } from '@material-ui/core'
@@ -26,6 +27,7 @@ import AddressAndBalance from './components/AddressAndBalance'
 import { Alert } from '@material-ui/lab'
 import { useSnackbar } from 'notistack'
 import { Balances } from './config/types'
+import Redeem from './components/Redeem'
 
 declare global {
   interface Window {
@@ -63,6 +65,7 @@ const App = () => {
   const [balances, setBalances] = useState<Balances>({ ETH: 0, DAI: 0, PHM: 0 })
   const [conversionRate, setConversionRate] = useState(0)
   const [showDepositModal, setShowDepositModal] = useState(false)
+  const [showRedeemModal, setShowRedeemModal] = useState(false)
   const [showNotConnectedModal, setShowNotConnectedModal] = useState(false)
   const [showInvalidNetworkModal, setShowInvalidNetworkModal] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
@@ -243,6 +246,25 @@ const App = () => {
         }}
       />
 
+      <Redeem
+        isOpen={showRedeemModal}
+        onClose={() => setShowRedeemModal(false)}
+        phmBalance={balances['PHM']}
+        conversionRate={conversionRate}
+        minterContract={minterContract}
+        phmContract={phmContract}
+        onRedeemSuccessful={() => {
+          enqueueSnackbar('DAI successfully redeemed!', { variant: 'success' })
+          refreshBalances()
+          setShowRedeemModal(false)
+        }}
+        onRedeemRejected={() => {
+          enqueueSnackbar('You have rejected the transaction!', {
+            variant: 'error'
+          })
+        }}
+      />
+
       <NotConnected
         isOpen={showNotConnectedModal}
         onClose={() => setShowNotConnectedModal(false)}
@@ -323,24 +345,48 @@ const App = () => {
                   </Typography>
                 </Box>
                 <Box mt={3} textAlign="center">
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => {
-                      if (injectedProvider) {
-                        if (network === NetworkNames.LOCAL) {
-                          setShowDepositModal(true)
-                        } else {
-                          setShowInvalidNetworkModal(true)
-                        }
-                      } else {
-                        setShowNotConnectedModal(true)
-                      }
-                    }}
-                    disabled={isConnecting}
-                  >
-                    Deposit
-                  </Button>
+                  <Grid container>
+                    <Grid item xs={12} md={6}>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => {
+                          if (injectedProvider) {
+                            if (network === NetworkNames.LOCAL) {
+                              setShowDepositModal(true)
+                            } else {
+                              setShowInvalidNetworkModal(true)
+                            }
+                          } else {
+                            setShowNotConnectedModal(true)
+                          }
+                        }}
+                        disabled={isConnecting}
+                      >
+                        Deposit
+                      </Button>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Button
+                        variant="contained"
+                        onClick={() => {
+                          if (injectedProvider) {
+                            if (network === NetworkNames.LOCAL) {
+                              setShowRedeemModal(true)
+                            } else {
+                              setShowInvalidNetworkModal(true)
+                            }
+                          } else {
+                            setShowNotConnectedModal(true)
+                          }
+                        }}
+                        disabled={isConnecting}
+                      >
+                        Redeem
+                      </Button>
+                    </Grid>
+                  </Grid>
+
                   {userAddress && (
                     <Box mt={1}>
                       <Typography variant="caption">

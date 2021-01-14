@@ -43,9 +43,19 @@ const main = async () => {
   await minterContract.initialize()
   await minterContract.addCollateralAddress(daiContract.address)
 
-  // Add minterContract as minter to both DAI & PHM
+  // Add minterContract as minter for DAI
   await daiContract.addMinter(minterContract.address)
+
+  // Add minterContract as minter & burner for PHM
   await phmContract.addMinter(minterContract.address)
+  await phmContract.addBurner(minterContract.address)
+
+  // To be removed as well (moved to redeem function)
+  await minterContract.approveCollateralSpend(
+    // to be removed as well
+    daiContract.address,
+    parseEther('10000')
+  )
 
   saveFrontendFiles(daiContract, phmContract, minterContract)
 }
