@@ -70,7 +70,6 @@ contract Minter is Lockable {
   function approveCollateralSpend(address _collateralAddress, uint256 amount)
     public
     isInitialized()
-    nonReentrant()
   {
     // TODO: Add role/admin, check MultiRole.sol
 
@@ -186,8 +185,7 @@ contract Minter is Lockable {
     _removeCollateralBalances(redeemedCollateral, _collateralAddress);
 
     // Transfer collateral from Minter contract to msg.sender
-    // TODO: check this
-
+    approveCollateralSpend(_collateralAddress, _tokenAmount);
     token.safeTransferFrom(address(this), msg.sender, redeemedCollateral);
 
     emit WithdrawnCollateral(
