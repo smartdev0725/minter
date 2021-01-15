@@ -54,7 +54,7 @@ const main = async () => {
   // await minterContract.approveCollateralSpend(
   //   // to be removed as well
   //   daiContract.address,
-  //   parseEther('10000')
+  //   parseEther('100000')
   // )
 
   saveFrontendFiles(daiContract, phmContract, minterContract)

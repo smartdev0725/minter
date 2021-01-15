@@ -86,7 +86,7 @@ const Redeem = ({
     try {
       const amount = parseEther(`${withdrawAmount}`)
 
-      await phmContract.approve(userAddress, amount)
+      await phmContract.approve(contractAddressObject.Minter, amount)
       console.log('Approved spend collateral tokens')
 
       const tx = await minterContract.redeemByCollateralAddress(

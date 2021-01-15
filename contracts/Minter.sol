@@ -72,8 +72,7 @@ contract Minter is Lockable {
     isInitialized()
   {
     // TODO: Add role/admin, check MultiRole.sol
-
-    require(isAdmin() == true, 'Sender is not allowed to do this action');
+    //require(isAdmin() == true, 'Sender is not allowed to do this action');
     IERC20 token = ExpandedIERC20(_collateralAddress);
     token.approve(address(this), amount);
 
@@ -102,6 +101,7 @@ contract Minter is Lockable {
     require(token.balanceOf(msg.sender) > 0, 'Not enough collateral amount');
 
     // Transfer collateral from user to this contract
+
     token.safeTransferFrom(msg.sender, address(this), _collateralAmount);
 
     // Update collateral balance deposited in this contract
@@ -155,7 +155,10 @@ contract Minter is Lockable {
 
     // TODO: UMA -- burn phm token
     // user transfer PHM to contract for burning
-    phmToken.transferFrom(msg.sender, address(this), _tokenAmount);
+    phmToken.approve(address(this), _tokenAmount);
+    // phmToken.safeApprove(msg.sender, _tokenAmou);
+
+    phmToken.safeTransferFrom(msg.sender, address(this), _tokenAmount);
 
     require(
       phmToken.balanceOf(address(this)) >= _tokenAmount,
@@ -185,8 +188,8 @@ contract Minter is Lockable {
     _removeCollateralBalances(redeemedCollateral, _collateralAddress);
 
     // Transfer collateral from Minter contract to msg.sender
-    approveCollateralSpend(_collateralAddress, _tokenAmount);
-    token.safeTransferFrom(address(this), msg.sender, redeemedCollateral);
+    approveCollateralSpend(_collateralAddress, redeemedCollateral);
+    token.safeTransfer(msg.sender, redeemedCollateral);
 
     emit WithdrawnCollateral(
       msg.sender,
