@@ -51,11 +51,11 @@ const main = async () => {
   await phmContract.addBurner(minterContract.address)
 
   // To be removed as well (moved to redeem function)
-  await minterContract.approveCollateralSpend(
-    // to be removed as well
-    daiContract.address,
-    parseEther('10000')
-  )
+  // await minterContract.approveCollateralSpend(
+  //   // to be removed as well
+  //   daiContract.address,
+  //   parseEther('10000')
+  // )
 
   saveFrontendFiles(daiContract, phmContract, minterContract)
 }

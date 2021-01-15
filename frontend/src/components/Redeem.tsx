@@ -35,6 +35,7 @@ const useStyles = makeStyles({
 interface RedeemProps {
   isOpen: boolean
   onClose: () => void
+  userAddress: string
   phmBalance: number
   conversionRate: number
   minterContract?: Minter
@@ -46,6 +47,7 @@ interface RedeemProps {
 const Redeem = ({
   isOpen,
   onClose,
+  userAddress,
   phmBalance,
   conversionRate,
   minterContract,
@@ -84,7 +86,7 @@ const Redeem = ({
     try {
       const amount = parseEther(`${withdrawAmount}`)
 
-      await phmContract.approve(contractAddressObject.Minter, amount)
+      await phmContract.approve(userAddress, amount)
       console.log('Approved spend collateral tokens')
 
       const tx = await minterContract.redeemByCollateralAddress(
