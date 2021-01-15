@@ -172,8 +172,6 @@ before(async () => {
     // approve contract to spend collateral tokens
     await daiContract.approve(minterContract.address, 10000)
     await phmContract.approve(minterContract.address, 10000)
-    await phmContract.approve(contractCreatorAccount.address, 10000)
-    await minterContract.approveCollateralSpend(daiContract.address, 10000)
   })
 
   it('Can deploy a non-collateral ERC token for testing', async () => {
