@@ -248,7 +248,6 @@ const App = () => {
 
       <Redeem
         isOpen={showRedeemModal}
-        userAddress={userAddress!}
         onClose={() => setShowRedeemModal(false)}
         phmBalance={balances['PHM']}
         conversionRate={conversionRate}

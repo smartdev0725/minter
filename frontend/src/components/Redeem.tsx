@@ -35,7 +35,6 @@ const useStyles = makeStyles({
 interface RedeemProps {
   isOpen: boolean
   onClose: () => void
-  userAddress: string
   phmBalance: number
   conversionRate: number
   minterContract?: Minter
@@ -47,7 +46,6 @@ interface RedeemProps {
 const Redeem = ({
   isOpen,
   onClose,
-  userAddress,
   phmBalance,
   conversionRate,
   minterContract,
