@@ -18,6 +18,7 @@ import { ExpandedIERC20, Minter } from '../typechain'
 import contractAddressObject from '../contracts/contract-address.json'
 import { ChainError } from '../config/enums'
 import { parseEther, parseUnits } from 'ethers/lib/utils'
+import { formatBalance } from '../utils/StringUtils'
 
 const useStyles = makeStyles({
   insufficientBalance: {
@@ -145,7 +146,7 @@ const Redeem = ({
               />
               <Box textAlign="right">
                 <Typography variant="caption">
-                  Balance: {phmBalance.toFixed(8)} DAI
+                  Balance: {formatBalance(phmBalance)} PHM
                 </Typography>
               </Box>
               <TextField

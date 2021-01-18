@@ -18,6 +18,7 @@ import { ExpandedIERC20, Minter } from '../typechain'
 import contractAddressObject from '../contracts/contract-address.json'
 import { ChainError } from '../config/enums'
 import { parseEther, parseUnits } from 'ethers/lib/utils'
+import { formatBalance } from '../utils/StringUtils'
 
 const useStyles = makeStyles({
   insufficientBalance: {
@@ -145,7 +146,7 @@ const Deposit = ({
               />
               <Box textAlign="right">
                 <Typography variant="caption">
-                  Balance: {daiBalance.toFixed(8)} DAI
+                  Balance: {formatBalance(daiBalance)} DAI
                 </Typography>
               </Box>
               <TextField
