@@ -314,4 +314,19 @@ contract Minter is Lockable {
     uint256 currentTimestamp,
     uint256 value
   ) internal virtual {}
+
+  // Functions for interacting with UMA in this smart contract
+  // TODO: Check data types
+  function _requestWithdrawal(uint256 denominatedCollateralAmount) internal {
+    // TODO: parse to fixed point
+    // TODO: send withdrawal requests
+  }
+
+  function _executeWithdrawal(uint256 amountWithdrawn) internal {}
+
+  function _cancelWithdrawal() internal {}
+
+  /****************************************
+   *          SECURITY  FUNCTIONS         *
+   ****************************************/
 }
