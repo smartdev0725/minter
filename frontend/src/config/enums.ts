@@ -1,4 +1,4 @@
-enum ConnectState {
+export enum ConnectState {
   UNAVAILABLE = 'Metamask not installed',
   DISCONNECTED = 'Disconnected',
   CONNECTED = 'Connected',
@@ -6,7 +6,7 @@ enum ConnectState {
   WRONG_NETWORK = 'Wrong network: connect to localhost'
 }
 
-enum Networks {
+export enum Networks {
   MAINNET = '0x1',
   KOVAN = '0x2a',
   ROPSTEN = '0x3',
@@ -15,14 +15,22 @@ enum Networks {
   LOCAL = '0x539'
 }
 
-enum NetworkNames {
-  MAINNET = 'mainnet',
-  KOVAN = 'kovan',
-  ROPSTEN = 'ropsten',
-  RINKEBY = 'rinkeby',
-  GOERLI = 'goerli',
+export enum NetworkNames {
+  MAINNET = 'Mainnet',
+  KOVAN = 'Kovan',
+  ROPSTEN = 'Ropsten',
+  RINKEBY = 'Rinkeby',
+  GOERLI = 'Goerli',
   LOCAL = 'localhost:8545',
-  UNKNOWN = 'unknown network'
+  UNKNOWN = 'Unknown Network'
 }
 
-export { ConnectState, Networks, NetworkNames }
+export enum Tokens {
+  ETH = 'ETH',
+  DAI = 'DAI',
+  PHM = 'PHM'
+}
+
+export enum ChainError {
+  REJECTED = 4001
+}

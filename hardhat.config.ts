@@ -28,7 +28,10 @@ const config: HardhatUserConfig = {
       }
     },
     hardhat: {
-      chainId: 99
+      chainId: 1337,
+      accounts: {
+        mnemonic: MNEMONIC_SEED
+      }
     }
   }
 }
