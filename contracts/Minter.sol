@@ -98,7 +98,10 @@ contract Minter is Lockable {
     SyntheticToken phmToken = SyntheticToken(_phmAddress);
 
     // Check if user has enough balance
-    require(token.balanceOf(msg.sender) > 0, 'Not enough collateral amount');
+    require(
+      token.balanceOf(msg.sender) >= _collateralAmount,
+      'Not enough collateral amount'
+    );
 
     // Transfer collateral from user to this contract
 
@@ -146,8 +149,6 @@ contract Minter is Lockable {
     // PHM token
     SyntheticToken phmToken = SyntheticToken(_phmAddress);
 
-    // Check if collateral amount is greater than 0
-    require(_tokenAmount > 0, 'Invalid token amount');
     require(
       phmToken.balanceOf(msg.sender) >= _tokenAmount,
       'Not enough PHM balance'
@@ -206,6 +207,10 @@ contract Minter is Lockable {
     view
     returns (uint256)
   {
+    require(
+      isWhitelisted(_collateralAddress) == true,
+      'Collateral address is not whitelisted.'
+    );
     IERC20 token = ExpandedIERC20(_collateralAddress);
     return token.balanceOf(address(this));
   }
@@ -218,6 +223,10 @@ contract Minter is Lockable {
     view
     returns (uint256)
   {
+    require(
+      isWhitelisted(_collateralAddress) == true,
+      'Collateral address is not whitelisted.'
+    );
     return collateralBalances[msg.sender][_collateralAddress];
   }
 
