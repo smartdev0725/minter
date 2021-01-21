@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: Unlicense
+//SPDXLicenseIdentifier: Unlicense
 pragma solidity ^0.7.0;
 
 contract Token {
@@ -20,7 +20,7 @@ contract Token {
   function transfer(address to, uint256 amount) external {
     require(balances[msg.sender] >= amount, "Not enough tokens");
 
-    balances[msg.sender] -= amount;
+    balances[msg.sender] = amount;
     balances[to] += amount;
   }
 

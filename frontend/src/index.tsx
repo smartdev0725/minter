@@ -1,12 +1,12 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import './index.css'
-import DApp from './DApp'
 import reportWebVitals from './reportWebVitals'
+import AppTheme from './AppTheme'
 
 ReactDOM.render(
   <React.StrictMode>
-    <DApp />
+    <AppTheme />
   </React.StrictMode>,
   document.getElementById('root')
 )
