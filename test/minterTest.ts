@@ -172,8 +172,6 @@ before(async () => {
     // approve contract to spend collateral tokens
     await daiContract.approve(minterContract.address, 10000)
     await phmContract.approve(minterContract.address, 10000)
-    await phmContract.approve(contractCreatorAccount.address, 10000)
-    await minterContract.approveCollateralSpend(daiContract.address, 10000)
   })
 
   it('Can deploy a non-collateral ERC token for testing', async () => {
@@ -313,6 +311,20 @@ describe('Can accept collateral and mint synthetic', async () => {
       )
     }
   })
+
+  it('deposit func should not mint PHM when msg.sender do not  have enough collateral balance and return error', async () => {
+    try {
+      await minterContract.depositByCollateralAddress(
+        123912312,
+        collateralAddress
+      )
+      assert(false, 'Error is not thrown')
+    } catch (err) {
+      expect(err.message).to.be.equal(
+        'VM Exception while processing transaction: revert Not enough collateral amount'
+      )
+    }
+  })
 })
 
 describe('Can redeem synth for original ERC20 collateral', async () => {
@@ -401,7 +413,20 @@ describe('Can call view functions from the contract', () => {
           daiContract.address
         )
       ).toNumber()
-    ).to.be.greaterThan(0)
+    ).to.be.at.least(0)
+  })
+
+  it('Does not return the balance of the collateral and returns an error if not whitelisted', async () => {
+    try {
+      await minterContract.getTotalCollateralByCollateralAddress(
+        dumContract.address
+      )
+      assert(false, 'Error is not thrown')
+    } catch (err) {
+      expect(err.message).to.be.equal(
+        'VM Exception while processing transaction: revert Collateral address is not whitelisted.'
+      )
+    }
   })
   it('Can get the user balance of the collateral inside the contract', async () => {
     expect(
@@ -412,6 +437,20 @@ describe('Can call view functions from the contract', () => {
       ).toNumber()
     ).to.be.greaterThan(0)
   })
+
+  it('Returns an error if the collateral address is not whitelisted', async () => {
+    try {
+      await minterContract.getUserCollateralByCollateralAddress(
+        dumContract.address
+      )
+      assert(false, 'Error is not thrown')
+    } catch (err) {
+      expect(err.message).to.be.equal(
+        'VM Exception while processing transaction: revert Collateral address is not whitelisted.'
+      )
+    }
+  })
+
   it('Can get the current conversion rate for the given collateral', async () => {
     // Stub for price identifier
     expect(
@@ -420,6 +459,7 @@ describe('Can call view functions from the contract', () => {
       ).toNumber()
     ).to.be.equal(50, 'Conversion rate is not equal to 50')
   })
+
   it('Can whitelist a collateral address', async () => {
     await minterContract.addCollateralAddress(dumContract.address)
     expect(await minterContract.isWhitelisted(dumContract.address)).to.be.true

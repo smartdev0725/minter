@@ -33,76 +33,76 @@ const useStyles = makeStyles({
   }
 })
 
-interface DepositProps {
+interface RedeemProps {
   isOpen: boolean
   onClose: () => void
-  daiBalance: number
+  phmBalance: number
   conversionRate: number
   minterContract?: Minter
-  collateralContract?: ExpandedIERC20
-  onDepositSuccessful: () => void
-  onDepositRejected: () => void
+  phmContract?: ExpandedIERC20
+  onRedeemSuccessful: () => void
+  onRedeemRejected: () => void
 }
 
-const Deposit = ({
+const Redeem = ({
   isOpen,
   onClose,
-  daiBalance,
+  phmBalance,
   conversionRate,
   minterContract,
-  collateralContract,
-  onDepositSuccessful,
-  onDepositRejected
-}: DepositProps) => {
+  phmContract,
+  onRedeemSuccessful,
+  onRedeemRejected
+}: RedeemProps) => {
   const classes = useStyles()
-  const [daiDeposit, setDaiDeposit] = useState(0)
-  const [phmToBeMinted, setPhmToBeMinted] = useState(0)
-  const [canDeposit, setCanDeposit] = useState(false)
+  const [withdrawAmount, setWithdrawAmount] = useState(0)
+  const [daiToBeRedeemed, setDaiToBeRedeemed] = useState(0)
+  const [canWithdraw, setCanWithdraw] = useState(false)
   const [insufficientBalance, setInsufficientBalance] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
-    setPhmToBeMinted(daiDeposit * conversionRate)
+    setDaiToBeRedeemed(withdrawAmount / conversionRate)
 
-    if (daiDeposit > 0 && daiDeposit <= daiBalance) {
-      setCanDeposit(true)
+    if (withdrawAmount > 0 && withdrawAmount <= phmBalance) {
+      setCanWithdraw(true)
     } else {
-      setCanDeposit(false)
+      setCanWithdraw(false)
     }
 
-    if (daiDeposit > daiBalance) {
+    if (withdrawAmount > phmBalance) {
       setInsufficientBalance(true)
     } else {
       setInsufficientBalance(false)
     }
-  }, [daiDeposit, conversionRate, daiBalance])
+  }, [withdrawAmount, conversionRate, phmBalance])
 
-  const deposit = async () => {
-    if (!minterContract || !collateralContract) return onClose()
+  const redeem = async () => {
+    if (!minterContract || !phmContract) return onClose()
 
     setIsProcessing(true)
 
     try {
-      const amount = parseEther(`${daiDeposit}`)
+      const amount = parseEther(`${withdrawAmount}`)
 
-      await collateralContract.approve(contractAddressObject.Minter, amount)
+      await phmContract.approve(contractAddressObject.Minter, amount)
       console.log('Approved spend collateral tokens')
 
-      const tx = await minterContract.depositByCollateralAddress(
+      const tx = await minterContract.redeemByCollateralAddress(
         amount,
         contractAddressObject.DAI
       )
-      console.log('Deposited collateral tokens')
+      console.log('Redeemed collateral tokens')
 
       const res = await tx.wait()
       console.log('Tx result:', res)
 
       setIsProcessing(false)
-      onDepositSuccessful()
+      onRedeemSuccessful()
     } catch (err) {
       setIsProcessing(false)
       if (err.code && err.code === ChainError.REJECTED) {
-        onDepositRejected()
+        onRedeemRejected()
       }
     }
   }
@@ -114,11 +114,11 @@ const Deposit = ({
       aria-labelledby="dialog-title"
       maxWidth="xs"
     >
-      <DialogTitle id="dialog-title">Mint PHM</DialogTitle>
+      <DialogTitle id="dialog-title">Redeem DAI</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          To mint PHM, please deposit DAI as your collateral. We show a preview
-          of how much PHM can be minted for your DAI deposit.
+          To redeem DAI, please specify amount of PHM to be withdrawn. We show a
+          preview of how much DAI can be redeemed for your PHM.
         </DialogContentText>
         <Box mx={6} textAlign="center">
           <Grid container spacing={2} justify="center" alignItems="center">
@@ -129,13 +129,13 @@ const Deposit = ({
               <TextField
                 autoFocus
                 margin="dense"
-                id="dai"
-                label="DAI"
+                id="phm"
+                label="PHM"
                 type="number"
                 fullWidth
-                value={daiDeposit}
+                value={withdrawAmount}
                 onChange={(e) => {
-                  setDaiDeposit(parseFloat(e.currentTarget.value))
+                  setWithdrawAmount(parseFloat(e.currentTarget.value))
                 }}
                 className={
                   insufficientBalance
@@ -146,16 +146,16 @@ const Deposit = ({
               />
               <Box textAlign="right">
                 <Typography variant="caption">
-                  Balance: {formatBalance(daiBalance)} DAI
+                  Balance: {formatBalance(phmBalance)} PHM
                 </Typography>
               </Box>
               <TextField
                 autoFocus
                 margin="dense"
-                id="phm"
-                label="PHM"
+                id="dai"
+                label="DAI"
                 type="number"
-                value={phmToBeMinted.toFixed(2)}
+                value={daiToBeRedeemed.toFixed(2)}
                 fullWidth
                 disabled
               />
@@ -183,10 +183,10 @@ const Deposit = ({
               <Button
                 variant="contained"
                 color="primary"
-                onClick={deposit}
-                disabled={!canDeposit}
+                onClick={redeem}
+                disabled={!canWithdraw}
               >
-                Deposit
+                Redeem
               </Button>
             </>
           )}
@@ -196,4 +196,4 @@ const Deposit = ({
   )
 }
 
-export default Deposit
+export default Redeem
