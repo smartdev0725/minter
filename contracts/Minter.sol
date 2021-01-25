@@ -7,15 +7,19 @@ import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
 import './SyntheticToken.sol';
 import './interfaces/ExpandedIERC20.sol';
 import './implementation/Lockable.sol';
+import './uma/PerpetualPositionManager.sol'
 
 contract Minter is Lockable {
   using SafeERC20 for IERC20;
   using SafeERC20 for SyntheticToken;
   using SafeMath for uint256;
+  
+  PerpetualPositionManager positionManager;
 
   bool private initialized;
   address private _phmAddress;
   address private _contractCreator;
+  address private _perpetualContractAddress;
 
   // stores the collateral address
   address private _collateralAddress;
@@ -58,8 +62,9 @@ contract Minter is Lockable {
    *           PUBLIC FUNCTIONS           *
    ****************************************/
 
-  constructor(address phmAddress) public nonReentrant() {
+  constructor(address phmAddress, address perpetualContractAddress) public nonReentrant() {
     _phmAddress = phmAddress;
+    _perpetualContractAddress = perpetualContractAddress;
     _contractCreator = msg.sender;
   }
 
@@ -316,15 +321,19 @@ contract Minter is Lockable {
     collateralBalances[msg.sender][_collateralAddress] = collateralBalance.sub(
       value
     );
+
+  }
+  
+  function _depositToUMA (uint256 collateralAmount)  internal {
+    positionManager.deposit(collateralAmount);
+  }
+  
+  function _mintTokensToUMA (uint256 collateralAmount, uint numTokens) internal {
+    positionManager.create(collateralAmount, numTokens);
   }
 
-  function _calculateRewards(
-    uint256 entryTimestamp,
-    uint256 currentTimestamp,
-    uint256 value
-  ) internal virtual {}
 
-  // Functions for interacting with UMA in this smart contract
+    // Functions for interacting with UMA in this smart contract
   // TODO: Check data types
   function _requestWithdrawal(uint256 denominatedCollateralAmount) internal {
     // TODO: parse to fixed point
@@ -334,6 +343,14 @@ contract Minter is Lockable {
   function _executeWithdrawal(uint256 amountWithdrawn) internal {}
 
   function _cancelWithdrawal() internal {}
+
+  function _calculateRewards(
+    uint256 entryTimestamp,
+    uint256 currentTimestamp,
+    uint256 value
+  ) internal {}
+
+
 
   /****************************************
    *          SECURITY  FUNCTIONS         *

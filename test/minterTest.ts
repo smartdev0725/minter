@@ -472,3 +472,51 @@ describe('Can call view functions from the contract', () => {
     expect(await minterContract.isWhitelisted(daiContract.address)).to.be.true
   })
 })
+
+await identifierWhitelist.addSupportedIdentifier(params.priceFeedIdentifier)
+await registry.addMember(1, perpCreator.address)
+const txResult = await perpCreator.createPerpetual(params)
+
+// perpetual
+const constructorParams2 = {
+  collateralAddress: TestnetERC20.address,
+  priceFeedIdentifier: web3.utils.padRight(web3.utils.fromAscii('PHM')),
+  fundingRateIdentifier: web3.utils.padRight(web3.utils.fromAscii('fPHM')),
+  syntheticName: 'Halo Dao PHM Token',
+  syntheticSymbol: 'PHM',
+  collateralRequirement: { rawValue: web3.utils.toWei('1.5') },
+  disputeBondPercentage: { rawValue: web3.utils.toWei('0.1') },
+  sponsorDisputeRewardPercentage: { rawValue: web3.utils.toWei('0.1') },
+  disputerDisputeRewardPercentage: { rawValue: web3.utils.toWei('0.1') },
+  minSponsorTokens: { rawValue: '100000000000000' },
+  tokenScaling: { rawValue: web3.utils.toWei('0.1') },
+  withdrawalLiveness: 7200,
+  liquidationLiveness: 7200
+}
+
+const constructorParams = {
+  expirationTimestamp: '1706780800',
+  collateralAddress: TestnetERC20.address,
+  priceFeedIdentifier: web3.utils.padRight(web3.utils.fromAscii('UMATEST')),
+  syntheticName: 'Test UMA Token',
+  syntheticSymbol: 'UMATEST',
+  collateralRequirement: { rawValue: web3.utils.toWei('1.5') },
+  disputeBondPercentage: { rawValue: web3.utils.toWei('0.1') },
+  sponsorDisputeRewardPercentage: { rawValue: web3.utils.toWei('0.1') },
+  disputerDisputeRewardPercentage: { rawValue: web3.utils.toWei('0.1') },
+  minSponsorTokens: { rawValue: '100000000000000' },
+  timerAddress: Timer.address,
+  withdrawalLiveness: 7200,
+  liquidationLiveness: 7200,
+  excessTokenBeneficiary: '0x0000000000000000000000000000000000000000',
+  financialProductLibraryAddress: '0x0000000000000000000000000000000000000000'
+}
+
+let configStore3 = {
+  timelockLiveness: 100,
+  rewardRatePerSecond: { rawValue: web3.utils.toWei('0.1') },
+  proposerBondPercentage: { rawValue: web3.utils.toWei('0.05') },
+  maxFundingRate: { rawValue: web3.utils.toWei('0.1') },
+  minFundingRate: { rawValue: web3.utils.toWei('0.05') },
+  proposalTimePastLimit: 7200
+}
