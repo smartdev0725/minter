@@ -413,7 +413,7 @@ describe('Can call view functions from the contract', () => {
           daiContract.address
         )
       ).toNumber()
-    ).to.be.greaterThan(0)
+    ).to.be.at.least(0)
   })
 
   it('Does not return the balance of the collateral and returns an error if not whitelisted', async () => {
