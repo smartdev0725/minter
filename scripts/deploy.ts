@@ -34,14 +34,21 @@ const main = async () => {
     deployer
   )) as Contract
 
+  const perpetualContractAddress = '0x67e8B6C4C72Be2A56F858279919B7cBC4BfF3084'
+  const collateralAddressUMA = '0x25AF99b922857C37282f578F428CB7f34335B379'
+  const phmAddressUma = '0x55aec27A24933F075c6b178fb0DDD5346104E6f1'
+
   // Deploy Minter contract
   const minterFactory = await ethers.getContractFactory('Minter')
-  let minterContract = await minterFactory.deploy(phmContract.address)
+  let minterContract = await minterFactory.deploy(
+    phmAddressUma,
+    perpetualContractAddress
+  )
   minterContract = await minterContract.deployed()
 
   // Initialize minter & add DAI collateral
   await minterContract.initialize()
-  await minterContract.addCollateralAddress(daiContract.address)
+  await minterContract.addCollateralAddress(collateralAddressUMA)
 
   // Add minterContract as minter for DAI
   await daiContract.addMinter(minterContract.address)
@@ -57,12 +64,12 @@ const main = async () => {
   //   parseEther('100000')
   // )
 
-  saveFrontendFiles(daiContract, phmContract, minterContract)
+  saveFrontendFiles(collateralAddressUMA, phmAddressUma, minterContract)
 }
 
 const saveFrontendFiles = (
-  daiContract: Contract,
-  phmContract: Contract,
+  daiContract: string,
+  phmContract: string,
   minterContract: Contract
 ) => {
   const contractsDir = __dirname + '/../frontend/src/contracts'
@@ -78,12 +85,13 @@ const saveFrontendFiles = (
   }
 
   // Copy contract addresses to /frontend/src/contracts/contract-address.json directory
+  // TODO: change to .address if we can deploy here
   fs.writeFileSync(
     contractsDir + '/contract-address.json',
     JSON.stringify(
       {
-        DAI: daiContract.address,
-        PHM: phmContract.address,
+        DAI: daiContract,
+        PHM: phmContract,
         Minter: minterContract.address
       },
       null,

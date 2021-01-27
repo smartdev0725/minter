@@ -1,4 +1,4 @@
-pragma solidity ^0.7.0;
+pragma solidity ^0.6.0;
 
 /**
  * @title A contract that provides modifiers to prevent reentrancy to state-changing and view-only methods. This contract
@@ -8,7 +8,7 @@ pragma solidity ^0.7.0;
 abstract contract Lockable {
   bool private _notEntered;
 
-  constructor() {
+  constructor() public {
     // Storing an initial non-zero value makes deployment a bit more
     // expensive, but in exchange the refund on every call to nonReentrant
     // will be lower in amount. Since refunds are capped to a percetange of

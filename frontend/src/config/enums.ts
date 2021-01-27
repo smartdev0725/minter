@@ -21,7 +21,7 @@ export enum NetworkNames {
   ROPSTEN = 'Ropsten',
   RINKEBY = 'Rinkeby',
   GOERLI = 'Goerli',
-  LOCAL = 'localhost:8545',
+  LOCAL = 'localhost:9545',
   UNKNOWN = 'Unknown Network'
 }
 

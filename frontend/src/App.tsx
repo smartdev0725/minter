@@ -47,7 +47,7 @@ const web3Modal = new Web3Modal({
            * The RPC URL mapping should be indexed by chainId and it requires at least one value
            * ChainId's: Mainnet (1), Ropsten (3), Rinkeby(4), Goerli (5) and Kovan (42)
            **/
-          1: 'http://localhost:8545'
+          1: 'http://localhost:9545'
         }
       }
     }

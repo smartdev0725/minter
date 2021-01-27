@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity ^0.7.0;
+pragma solidity ^0.6.0;
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
@@ -7,13 +7,20 @@ import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
 import './SyntheticToken.sol';
 import './interfaces/ExpandedIERC20.sol';
 import './implementation/Lockable.sol';
-import './uma/PerpetualPositionManager.sol'
+import './uma/PerpetualPositionInterface.sol';
+
+//import './uma/FixedPoint.sol';
 
 contract Minter is Lockable {
   using SafeERC20 for IERC20;
   using SafeERC20 for SyntheticToken;
   using SafeMath for uint256;
-  
+  //using FixedPoint for FixedPoint.Unsigned;
+
+  struct Unsigned {
+    uint256 rawValue;
+  }
+
   PerpetualPositionManager positionManager;
 
   bool private initialized;
@@ -62,7 +69,10 @@ contract Minter is Lockable {
    *           PUBLIC FUNCTIONS           *
    ****************************************/
 
-  constructor(address phmAddress, address perpetualContractAddress) public nonReentrant() {
+  constructor(address phmAddress, address perpetualContractAddress)
+    public
+    nonReentrant()
+  {
     _phmAddress = phmAddress;
     _perpetualContractAddress = perpetualContractAddress;
     _contractCreator = msg.sender;
@@ -126,12 +136,14 @@ contract Minter is Lockable {
 
     // Calculate conversion rate + fees, make a price identifier @ 50 pesos (Might be UMA part)
 
-    uint256 mintedTokens = _collateralAmount.mul(phpDaiStubExchangeRate);
+    // uint256 mintedTokens = _collateralAmount.mul(phpDaiStubExchangeRate);
+    uint256 mintedTokens = _collateralAmount.div(2);
 
     // TODO: replace with UMA implementation
     // 1 - Send DAI to UMA financial contract
     // 2 - Confirm minting event
-    phmToken.mint(msg.sender, mintedTokens);
+    //phmToken.mint(msg.sender, mintedTokens);
+    _mintTokensToUMA(_collateralAmount, mintedTokens);
 
     // emit Mint event
     emit Mint(msg.sender, mintedTokens);
@@ -321,19 +333,20 @@ contract Minter is Lockable {
     collateralBalances[msg.sender][_collateralAddress] = collateralBalance.sub(
       value
     );
-
-  }
-  
-  function _depositToUMA (uint256 collateralAmount)  internal {
-    positionManager.deposit(collateralAmount);
-  }
-  
-  function _mintTokensToUMA (uint256 collateralAmount, uint numTokens) internal {
-    positionManager.create(collateralAmount, numTokens);
   }
 
+  function _mintTokensToUMA(uint256 collateralAmount, uint256 numTokens)
+    internal
+  {
+    //positionManager.create(
+    //  FixedPoint.fromUnscaledUint(collateralAmount),
+    //  FixedPoint.fromUnscaledUint(numTokens)
+    //);
 
-    // Functions for interacting with UMA in this smart contract
+    positionManager.create(Unsigned(collateralAmount), Unsigned(numTokens));
+  }
+
+  // Functions for interacting with UMA in this smart contract
   // TODO: Check data types
   function _requestWithdrawal(uint256 denominatedCollateralAmount) internal {
     // TODO: parse to fixed point
@@ -349,8 +362,6 @@ contract Minter is Lockable {
     uint256 currentTimestamp,
     uint256 value
   ) internal {}
-
-
 
   /****************************************
    *          SECURITY  FUNCTIONS         *
