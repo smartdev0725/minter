@@ -18,9 +18,10 @@ import NotConnected from './components/NotConnected'
 import contractAddressObject from './contracts/contract-address.json'
 import PHMArtifact from './contracts/PHM.json'
 import DAIArtifact from './contracts/DAI.json'
+import PerpetualArtifact from './contracts/Perpetual.json'
 import MinterArtifact from './contracts/Minter.json'
 import { ethers } from 'ethers'
-import { ExpandedIERC20, Minter } from './typechain'
+import { ExpandedIERC20, Minter, Perpetual } from './typechain'
 import { bigNumberToFloat, formatBalance } from './utils/StringUtils'
 import InvalidNetwork from './components/InvalidNetwork'
 import AddressAndBalance from './components/AddressAndBalance'
@@ -72,6 +73,7 @@ const App = () => {
   const [phmTotalSupply, setPhmTotalSupply] = useState(0)
   const [phmContract, setPhmContract] = useState<ExpandedIERC20>()
   const [daiContract, setDaiContract] = useState<ExpandedIERC20>()
+  const [perpetualContract, setPerpetualContract] = useState<Perpetual>()
   const [minterContract, setMinterContract] = useState<Minter>()
   const { enqueueSnackbar } = useSnackbar()
 
@@ -128,6 +130,14 @@ const App = () => {
         injectedProvider.getSigner()
       ) as Minter
       setMinterContract(mContract)
+
+      const perpContract = new ethers.Contract(
+        contractAddressObject.PerpetualContract,
+        PerpetualArtifact.abi,
+        injectedProvider.getSigner()
+      ) as Perpetual
+
+      setPerpetualContract(perpContract)
     }
 
     getUserAddressAndBalance().then(initContracts)
@@ -234,6 +244,7 @@ const App = () => {
         conversionRate={conversionRate}
         minterContract={minterContract}
         collateralContract={daiContract}
+        perpetualContract={perpetualContract}
         onDepositSuccessful={() => {
           enqueueSnackbar('PHM successfully minted!', { variant: 'success' })
           refreshBalances()

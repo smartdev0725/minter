@@ -57,6 +57,9 @@ const main = async () => {
   await phmContract.addMinter(minterContract.address)
   await phmContract.addBurner(minterContract.address)
 
+  // Add ether to smart contract
+  await minterContract.sendEther({ value: parseEther('10') })
+
   // To be removed as well (moved to redeem function)
   // await minterContract.approveCollateralSpend(
   //   // to be removed as well
@@ -64,12 +67,18 @@ const main = async () => {
   //   parseEther('100000')
   // )
 
-  saveFrontendFiles(collateralAddressUMA, phmAddressUma, minterContract)
+  saveFrontendFiles(
+    collateralAddressUMA,
+    phmAddressUma,
+    perpetualContractAddress,
+    minterContract
+  )
 }
 
 const saveFrontendFiles = (
   daiContract: string,
   phmContract: string,
+  perpetualContract: string,
   minterContract: Contract
 ) => {
   const contractsDir = __dirname + '/../frontend/src/contracts'
@@ -92,7 +101,8 @@ const saveFrontendFiles = (
       {
         DAI: daiContract,
         PHM: phmContract,
-        Minter: minterContract.address
+        Minter: minterContract.address,
+        PerpetualContract: perpetualContract
       },
       null,
       2
@@ -116,6 +126,12 @@ const saveFrontendFiles = (
   fs.writeFileSync(
     contractsDir + '/Minter.json',
     JSON.stringify(MinterArtifact, null, 2)
+  )
+
+  const PerpetualArtifact = artifacts.readArtifactSync('Perpetual')
+  fs.writeFileSync(
+    contractsDir + '/Perpetual.json',
+    JSON.stringify(PerpetualArtifact, null, 2)
   )
 
   // Copy typechain to /frontend/src/typechain directory

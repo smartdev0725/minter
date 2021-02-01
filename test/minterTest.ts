@@ -472,3 +472,8 @@ describe('Can call view functions from the contract', () => {
     expect(await minterContract.isWhitelisted(daiContract.address)).to.be.true
   })
 })
+
+
+const constructorParams2= {collateralAddress: TestnetERC20.address,priceFeedIdentifier: web3.utils.padRight(web3.utils.fromAscii(‘PHM’)),fundingRateIdentifier: web3.utils.padRight(web3.utils.fromAscii(‘fPHM’)),syntheticName: ‘Halo Dao PHM Token’,syntheticSymbol: ‘PHM’,collateralRequirement: { rawValue: web3.utils.toWei(‘1.5’) },disputeBondPercentage: { rawValue: web3.utils.toWei(‘0.1’) },sponsorDisputeRewardPercentage: { rawValue: web3.utils.toWei(‘0.1’) },disputerDisputeRewardPercentage: { rawValue: web3.utils.toWei(‘0.1’) },minSponsorTokens: { rawValue: ‘100000000000000’ },tokenScaling: { rawValue: web3.utils.toWei(‘0.1’) },withdrawalLiveness: 7200,liquidationLiveness: 7200}
+
+let configStore = {timelockLiveness: 129600,rewardRatePerSecond: { rawValue: web3.utils.toWei(‘0.0000001’) },proposerBondPercentage:{ rawValue: web3.utils.toWei(‘5’) },maxFundingRate: { rawValue: web3.utils.toWei(’10’) },minFundingRate: { rawValue: web3.utils.toWei(‘5’) },proposalTimePastLimit: 7200}

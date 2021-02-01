@@ -14,7 +14,7 @@ import {
   CircularProgress
 } from '@material-ui/core'
 import SwapVertIcon from '@material-ui/icons/SwapVert'
-import { ExpandedIERC20, Minter } from '../typechain'
+import { ExpandedIERC20, Minter, Perpetual } from '../typechain'
 import contractAddressObject from '../contracts/contract-address.json'
 import { ChainError } from '../config/enums'
 import { parseEther, parseUnits } from 'ethers/lib/utils'
@@ -39,6 +39,7 @@ interface DepositProps {
   daiBalance: number
   conversionRate: number
   minterContract?: Minter
+  perpetualContract?: Perpetual
   collateralContract?: ExpandedIERC20
   onDepositSuccessful: () => void
   onDepositRejected: () => void
@@ -51,6 +52,7 @@ const Deposit = ({
   conversionRate,
   minterContract,
   collateralContract,
+  perpetualContract,
   onDepositSuccessful,
   onDepositRejected
 }: DepositProps) => {
@@ -78,7 +80,8 @@ const Deposit = ({
   }, [daiDeposit, conversionRate, daiBalance])
 
   const deposit = async () => {
-    if (!minterContract || !collateralContract) return onClose()
+    if (!minterContract || !collateralContract || !perpetualContract)
+      return onClose()
 
     setIsProcessing(true)
 
@@ -88,6 +91,21 @@ const Deposit = ({
       await collateralContract.approve(contractAddressObject.Minter, amount)
       console.log('Approved spend collateral tokens')
 
+      /**
+       * UMA Contract direct interaction approach
+       * - create tokens using create function in uma Perpetual Contract
+       * - checking position uma side await perp.positions(this account)
+       * - sync the data with the minter contract
+       */
+      // 1- create tokens from the UMA contract
+      /*
+      await perpetualContract.create(
+        { rawValue: parseEther('150') },
+        { rawValue: parseEther('100') }
+      )
+*/
+
+      // record the position for rewards
       const tx = await minterContract.depositByCollateralAddress(
         amount,
         contractAddressObject.DAI

@@ -1,32 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.6.0;
+pragma experimental ABIEncoderV2;
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
-import './SyntheticToken.sol';
-import './interfaces/ExpandedIERC20.sol';
-import './implementation/Lockable.sol';
-import './uma/PerpetualPositionInterface.sol';
-
-//import './uma/FixedPoint.sol';
+//import './SyntheticToken.sol';
+import './uma/perpetual-multiparty/PerpetualPositionManager.sol';
 
 contract Minter is Lockable {
   using SafeERC20 for IERC20;
-  using SafeERC20 for SyntheticToken;
   using SafeMath for uint256;
-  //using FixedPoint for FixedPoint.Unsigned;
-
-  struct Unsigned {
-    uint256 rawValue;
-  }
-
-  PerpetualPositionManager positionManager;
-
   bool private initialized;
   address private _phmAddress;
   address private _contractCreator;
   address private _perpetualContractAddress;
+
+  PerpetualPositionManager positionManager;
+  //PerpetualCreator pereptualCreator;
 
   // stores the collateral address
   address private _collateralAddress;
@@ -76,10 +67,17 @@ contract Minter is Lockable {
     _phmAddress = phmAddress;
     _perpetualContractAddress = perpetualContractAddress;
     _contractCreator = msg.sender;
+    positionManager = PerpetualPositionManager(_perpetualContractAddress);
+    // perpetualCreator = PerpetualCreator(_perpetualContractAddress);
   }
 
   function initialize() public nonReentrant() {
     initialized = true;
+    // TODO: Create Perpetual contract here
+  }
+
+  function sendEther() public payable {
+    return;
   }
 
   function approveCollateralSpend(address _collateralAddress, uint256 amount)
@@ -110,7 +108,7 @@ contract Minter is Lockable {
     // Collateral token
     IERC20 token = ExpandedIERC20(_collateralAddress);
     // PHM token
-    SyntheticToken phmToken = SyntheticToken(_phmAddress);
+    //SyntheticToken phmToken = SyntheticToken(_phmAddress);
 
     // Check if user has enough balance
     require(
@@ -119,8 +117,8 @@ contract Minter is Lockable {
     );
 
     // Transfer collateral from user to this contract
-
-    token.safeTransferFrom(msg.sender, address(this), _collateralAmount);
+    token.approve(_perpetualContractAddress, _collateralAmount);
+    token.transferFrom(msg.sender, address(this), _collateralAmount);
 
     // Update collateral balance deposited in this contract
     _addCollateralBalances(_collateralAmount, _collateralAddress);
@@ -137,7 +135,7 @@ contract Minter is Lockable {
     // Calculate conversion rate + fees, make a price identifier @ 50 pesos (Might be UMA part)
 
     // uint256 mintedTokens = _collateralAmount.mul(phpDaiStubExchangeRate);
-    uint256 mintedTokens = _collateralAmount.div(2);
+    uint256 mintedTokens = 100;
 
     // TODO: replace with UMA implementation
     // 1 - Send DAI to UMA financial contract
@@ -164,6 +162,8 @@ contract Minter is Lockable {
     // Collateral token
     IERC20 token = ExpandedIERC20(_collateralAddress);
     // PHM token
+
+    /*
     SyntheticToken phmToken = SyntheticToken(_phmAddress);
 
     require(
@@ -214,6 +214,8 @@ contract Minter is Lockable {
       redeemedCollateral,
       _collateralAddress
     );
+
+    */
   }
 
   /**
@@ -338,12 +340,14 @@ contract Minter is Lockable {
   function _mintTokensToUMA(uint256 collateralAmount, uint256 numTokens)
     internal
   {
-    //positionManager.create(
-    //  FixedPoint.fromUnscaledUint(collateralAmount),
-    //  FixedPoint.fromUnscaledUint(numTokens)
-    //);
+    positionManager.create(
+      FixedPoint.fromUnscaledUint(collateralAmount),
+      FixedPoint.fromUnscaledUint(numTokens)
+    );
 
-    positionManager.create(Unsigned(collateralAmount), Unsigned(numTokens));
+    //positionManager.deposit(FixedPoint.fromUnscaledUint(collateralAmount));
+
+    //positionManager.remargin();
   }
 
   // Functions for interacting with UMA in this smart contract
