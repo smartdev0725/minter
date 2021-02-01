@@ -50,12 +50,14 @@ const main = async () => {
   await minterContract.initialize()
   await minterContract.addCollateralAddress(collateralAddressUMA)
 
+  /*
   // Add minterContract as minter for DAI
   await daiContract.addMinter(minterContract.address)
 
   // Add minterContract as minter & burner for PHM
   await phmContract.addMinter(minterContract.address)
   await phmContract.addBurner(minterContract.address)
+*/
 
   // Add ether to smart contract
   await minterContract.sendEther({ value: parseEther('10') })

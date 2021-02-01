@@ -110,12 +110,17 @@ before(async () => {
     )
   })
 
+  /*
   // create the TokenFactory (existing contract by UMA not us)
   it('Can deploy and get ref to TokenFactory', async () => {
     tokenFactoryContract = await deployContract(tokenFactoryLabelString)
   })
+  */
+
+  it('Deploy UMA and get reference to perpetual contract')
 
   // create the synthetic token (this should be created by UMA not us)
+  /*
   it('Can deploy and get ref to PHM Contract', async () => {
     // create token
     const tx = await tokenFactoryContract.createToken(
@@ -129,9 +134,7 @@ before(async () => {
     const txReceipt = await tx.wait()
     const txReceiptEvent = txReceipt.events.pop()
 
-    /**
-     * get contract prev deployed by tokenFactory using address and account[0] as signer
-     */
+ 
     phmContract = await ethers.getContractAt(
       expandedERC20LabelString,
       txReceiptEvent.address,
@@ -143,6 +146,7 @@ before(async () => {
     // check if valid ERC20 Contract obj
     await isValidERC20(phmContractLabelString, phmContract, tokenDetails)
   })
+  */
 
   it('Can deploy and get ref to Minter Contract', async () => {
     let contractFactory = await ethers.getContractFactory(
@@ -163,15 +167,15 @@ before(async () => {
     await minterContract.addCollateralAddress(daiContract.address)
 
     // add  minterContract as minter
-    await daiContract.addMinter(minterContract.address)
+    // await daiContract.addMinter(minterContract.address)
 
-    // add minterContract as minter and burner of phm contract
-    await phmContract.addMinter(minterContract.address)
-    await phmContract.addBurner(minterContract.address)
+    // // add minterContract as minter and burner of phm contract
+    // await phmContract.addMinter(minterContract.address)
+    // await phmContract.addBurner(minterContract.address)
 
-    // approve contract to spend collateral tokens
-    await daiContract.approve(minterContract.address, 10000)
-    await phmContract.approve(minterContract.address, 10000)
+    // // approve contract to spend collateral tokens
+    // await daiContract.approve(minterContract.address, 10000)
+    // await phmContract.approve(minterContract.address, 10000)
   })
 
   it('Can deploy a non-collateral ERC token for testing', async () => {
