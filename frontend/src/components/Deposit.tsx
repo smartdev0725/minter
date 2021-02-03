@@ -64,7 +64,7 @@ const Deposit = ({
   const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
-    setPhmToBeMinted(daiDeposit * conversionRate)
+    setPhmToBeMinted(daiDeposit / conversionRate)
 
     if (daiDeposit > 0 && daiDeposit <= daiBalance) {
       setCanDeposit(true)
@@ -88,7 +88,17 @@ const Deposit = ({
     try {
       const amount = parseEther(`${daiDeposit}`)
 
+      // 0.1 -  approve transfer from msg.sender to minter
       await collateralContract.approve(contractAddressObject.Minter, amount)
+
+      // 0.2 approve transfer from minter to EMP/Perpetual
+      const tx0 = await minterContract.approveCollateralSpend(
+        contractAddressObject.DAI,
+        amount
+      )
+
+      const res0 = await tx0.wait()
+      console.log('Tx result:', res0)
       console.log('Approved spend collateral tokens')
 
       /**
@@ -99,21 +109,31 @@ const Deposit = ({
        */
       // 1- create tokens from the UMA contract
       /*
-      await perpetualContract.create(
+       await perpetualContract.create(
         { rawValue: parseEther('150') },
-        { rawValue: parseEther('100') }
+        { rawValue: parseEther('30') }
       )
 */
 
-      // record the position for rewards
-      const tx = await minterContract.depositByCollateralAddress(
+      // 1- deposit collateral
+      const tx1 = await minterContract.depositByCollateralAddress(
         amount,
         contractAddressObject.DAI
       )
+
+      const res1 = await tx1.wait()
+      console.log('Tx result:', res1)
       console.log('Deposited collateral tokens')
 
-      const res = await tx.wait()
-      console.log('Tx result:', res)
+      // 2 - Call create function from UMA to mint tokens
+      const tx2 = await minterContract.mintFromUMA(
+        contractAddressObject.DAI,
+        amount,
+        parseEther(phmToBeMinted.toString())
+      )
+      const res2 = await tx2.wait()
+      console.log('Tx result:', res2)
+      console.log('Minted PHM tokens')
 
       setIsProcessing(false)
       onDepositSuccessful()

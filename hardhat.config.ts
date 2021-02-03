@@ -26,7 +26,8 @@ const config: HardhatUserConfig = {
       url: `https://kovan.infura.io/v3/${INFURA_PROJECT_ID}`,
       accounts: {
         mnemonic: MNEMONIC_SEED
-      }
+      },
+      gasPrice: 50000000000
     },
     hardhat: {
       chainId: 1337,

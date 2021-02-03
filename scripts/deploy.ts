@@ -2,18 +2,19 @@ import { artifacts, ethers } from 'hardhat'
 import * as fs from 'fs'
 import * as fse from 'fs-extra'
 import { TokenFactory } from '../typechain/TokenFactory'
-import { Contract } from 'ethers'
-import { parseEther } from 'ethers/lib/utils'
+import { Contract, providers } from 'ethers'
+import { formatEther, parseEther } from 'ethers/lib/utils'
 
 const main = async () => {
   const [deployer, testUser] = await ethers.getSigners()
 
   console.log('Deploying contracts with the account:', deployer.address)
-  console.log('Account balance:', (await deployer.getBalance()).toString())
+  console.log('Account balance:', formatEther(await deployer.getBalance()))
 
   // const wallet = await ethers.Wallet.fromMnemonic(process.env.MNEMONIC_SEED)
   console.log('Account 1 test user address:', testUser.address)
 
+  /*
   // Deploy dummy DAI contract
   const daiFactory = await ethers.getContractFactory('ExpandedERC20')
   let daiContract = await daiFactory.deploy('DAI', 'DAI', '18')
@@ -33,16 +34,25 @@ const main = async () => {
     txReceiptEvent.address,
     deployer
   )) as Contract
-
-  const perpetualContractAddress = '0x67e8B6C4C72Be2A56F858279919B7cBC4BfF3084'
-  const collateralAddressUMA = '0x25AF99b922857C37282f578F428CB7f34335B379'
-  const phmAddressUma = '0x55aec27A24933F075c6b178fb0DDD5346104E6f1'
+*/
+  //const perpetualContractAddress = '0x67e8B6C4C72Be2A56F858279919B7cBC4BfF3084' // Address for Kovan
+  const empContractAddress = '0x6F94a615461267b18Fb5BdF9Aa3D1d37684B1B52'
+  // const empContractAddress = '0xA1dF1Eb9bEB2f91444E2880E2B204096057b281d' // Address for Kovan
+  const collateralAddressUMA = '0x25D02115bd67258a406A0F676147E6C3598a91a9'
+  //const collateralAddressUMA = '0x4f96fe3b7a6cf9725f59d353f723c1bdb64ca6aa' //Address for Kovan
+  const phmAddressUma = '0x15Cc6245B0396Eba7Aea42f2850aA79A200dc33f'
+  //const phmAddressUma = '0x0e47a28e4f16db3a2583ab4195a7ba49a3e9cfe6' // Address for Kovan
 
   // Deploy Minter contract
   const minterFactory = await ethers.getContractFactory('Minter')
+  const empContractInstance = await ethers.getContractAt(
+    'ExpiringMultiParty',
+    empContractAddress,
+    deployer
+  )
   let minterContract = await minterFactory.deploy(
     phmAddressUma,
-    perpetualContractAddress
+    empContractAddress
   )
   minterContract = await minterContract.deployed()
 
@@ -60,7 +70,8 @@ const main = async () => {
 */
 
   // Add ether to smart contract
-  await minterContract.sendEther({ value: parseEther('10') })
+  await minterContract.sendEther({ value: parseEther('123') })
+  console.log('Minter address: ', minterContract.address)
 
   // To be removed as well (moved to redeem function)
   // await minterContract.approveCollateralSpend(
@@ -72,7 +83,7 @@ const main = async () => {
   saveFrontendFiles(
     collateralAddressUMA,
     phmAddressUma,
-    perpetualContractAddress,
+    empContractAddress,
     minterContract
   )
 }
