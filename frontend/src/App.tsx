@@ -280,7 +280,7 @@ const App = () => {
       <Container maxWidth="sm">
         <Box py={3}>
           <Typography variant="h4" style={{ color: 'white' }}>
-            HaloDAO Minter Demo
+            HaloDAO Minter
           </Typography>
 
           <Box my={3}>
