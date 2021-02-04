@@ -1,0 +1,9 @@
+name: Build and test on push
+'on': push
+jobs:
+  build_and_preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i && npm compile && npm test
+      - run: cd frontend && npm i && npm test && npm run build
