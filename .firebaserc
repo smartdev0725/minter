@@ -1,0 +1,22 @@
+{
+  "projects": {
+    "default": "halo-dev-eb31c",
+    "prod": "halo-prod-f792f"
+  },
+  "targets": {
+    "halo-dev-eb31c": {
+      "hosting": {
+        "develop": [
+          "dev-minter-halodao"
+        ]
+      }
+    },
+    "halo-prod-f792f": {
+      "hosting": {
+        "prod": [
+          "minter-halodao"
+        ]
+      }
+    }
+  }
+}
