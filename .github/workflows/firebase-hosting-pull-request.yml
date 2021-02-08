@@ -7,8 +7,16 @@ jobs:
   build_and_preview:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - run: cd frontend && npm test && npm run build
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Switch Node.js version
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.15.0
+      - name: Setup & deploy contracts
+        run: npm i && npm run compile && npm run node & npm run deploy:local
+      - name: Setup & build frontend
+        run: cd frontend && npm i && npm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
