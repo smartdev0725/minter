@@ -1,0 +1,16 @@
+name: Compile and test on push
+on: [push]
+jobs:
+  compile-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Switch Node.js version
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.15.0
+      - name: Compile & test backend
+        run: npm i && npm run compile && npm test
+      - name: Test frontend
+        run: cd frontend && npm i && CI=true npm test
