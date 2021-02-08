@@ -1,7 +1,7 @@
-name: Compile and test on push
+name: Build and test on push
 on: [push]
 jobs:
-  compile-and-test:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -10,7 +10,9 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 14.15.0
-      - name: Compile & test backend
+      - name: Compile & test contracts
         run: npm i && npm run compile && npm test
-      - name: Test frontend
-        run: cd frontend && npm i && CI=true npm test
+      - name: Run node & deploy contracts
+        run: npm run node & npm run deploy:local
+      - name: Test & build frontend
+        run: cd frontend && npm i && CI=true npm test && npm run build
