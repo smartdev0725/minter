@@ -16,7 +16,7 @@ import { NetworkNames } from './config/enums'
 import Deposit from './components/Deposit'
 import NotConnected from './components/NotConnected'
 import contractAddressObject from './contracts/contract-address.json'
-import PHMArtifact from './contracts/PHM.json'
+import UBEArtifact from './contracts/UBE.json'
 import DAIArtifact from './contracts/DAI.json'
 import MinterArtifact from './contracts/Minter.json'
 import { ethers } from 'ethers'
@@ -105,10 +105,10 @@ const App = () => {
 
       setShowInvalidNetworkModal(false)
 
-      // Get PHM contract from the chain
+      // Get UBE contract from the chain
       const pContract = new ethers.Contract(
-        contractAddressObject.PHM,
-        PHMArtifact.abi,
+        contractAddressObject.UBE,
+        UBEArtifact.abi,
         injectedProvider.getSigner()
       ) as ExpandedIERC20
       setPhmContract(pContract)

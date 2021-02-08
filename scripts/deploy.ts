@@ -1,7 +1,6 @@
 import { artifacts, ethers } from 'hardhat'
 import * as fs from 'fs'
 import * as fse from 'fs-extra'
-import { TokenFactory } from '../typechain/TokenFactory'
 import { Contract } from 'ethers'
 import { parseEther } from 'ethers/lib/utils'
 
@@ -21,14 +20,14 @@ const main = async () => {
   await daiContract.addMinter(deployer.address)
   await daiContract.mint(testUser.address, parseEther('1000'))
 
-  // Deploy PHM contract (by deploying TokenFactory & calling TokenFactory.createToken())
+  // Deploy UBE contract (by deploying TokenFactory & calling TokenFactory.createToken())
   const tokenFactory = await ethers.getContractFactory('TokenFactory')
   let tokenContract = await tokenFactory.deploy()
   tokenContract = await tokenContract.deployed()
 
-  const tx = await tokenContract.createToken('Mochi PH Token', 'PHM', '18')
+  const tx = await tokenContract.createToken('Mochi PH Token', 'UBE', '18')
   const txReceiptEvent = (await tx.wait()).events.pop()
-  const phmContract = (await ethers.getContractAt(
+  const ubeContract = (await ethers.getContractAt(
     'ExpandedERC20',
     txReceiptEvent.address,
     deployer
@@ -36,7 +35,7 @@ const main = async () => {
 
   // Deploy Minter contract
   const minterFactory = await ethers.getContractFactory('Minter')
-  let minterContract = await minterFactory.deploy(phmContract.address)
+  let minterContract = await minterFactory.deploy(ubeContract.address)
   minterContract = await minterContract.deployed()
 
   // Initialize minter & add DAI collateral
@@ -46,9 +45,9 @@ const main = async () => {
   // Add minterContract as minter for DAI
   await daiContract.addMinter(minterContract.address)
 
-  // Add minterContract as minter & burner for PHM
-  await phmContract.addMinter(minterContract.address)
-  await phmContract.addBurner(minterContract.address)
+  // Add minterContract as minter & burner for UBE
+  await ubeContract.addMinter(minterContract.address)
+  await ubeContract.addBurner(minterContract.address)
 
   // To be removed as well (moved to redeem function)
   // await minterContract.approveCollateralSpend(
@@ -57,12 +56,12 @@ const main = async () => {
   //   parseEther('100000')
   // )
 
-  saveFrontendFiles(daiContract, phmContract, minterContract)
+  saveFrontendFiles(daiContract, ubeContract, minterContract)
 }
 
 const saveFrontendFiles = (
   daiContract: Contract,
-  phmContract: Contract,
+  ubeContract: Contract,
   minterContract: Contract
 ) => {
   const contractsDir = __dirname + '/../frontend/src/contracts'
@@ -83,7 +82,7 @@ const saveFrontendFiles = (
     JSON.stringify(
       {
         DAI: daiContract.address,
-        PHM: phmContract.address,
+        UBE: ubeContract.address,
         Minter: minterContract.address
       },
       null,
@@ -100,7 +99,7 @@ const saveFrontendFiles = (
 
   const IERC20Artifact = artifacts.readArtifactSync('ExpandedIERC20')
   fs.writeFileSync(
-    contractsDir + '/PHM.json',
+    contractsDir + '/UBE.json',
     JSON.stringify(IERC20Artifact, null, 2)
   )
 
