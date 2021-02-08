@@ -17,12 +17,13 @@
 2. run `npm i` to install backend dependencies (or just run `npm start` to skip steps 3,4,5 and 8)
 3. Run `npm run compile` to generate typchain typings (skip if you ran `npm start` at #2)
 4. run `npm test` to run contract test suite to run smart contract test cases (skip if you ran `npm start` at #2)
-5. run `npm run node` to start the hardhat evm chain (skip if you ran `npm start` at #2)
-6. on another terminal, run `npm run deploy:local` to compile and deploy locally (deploy script copies the contract artifact & typechain to frontend)
-7. cd to frontend `cd frontend`
-8. run `npm i` to install frontend dependencies (skip if you ran `npm start` at #2)
-9. run `npm start` to serve the app locally
-10. React app should print the token contract name, total supply, current network (unknown if local) and contract address.
+5. Open another terminal and use ganache node
+   open another terminal and enter truffle console
+   migrate
+
+do parameterize and deploy a contract steps 1- 10 and create new tokens from existing contract step 1
+
+6. on another terminal, run `npm run start:fe` to compile the minter contract and launch minter dApp
 
 ## Environment Setup
 

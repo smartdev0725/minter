@@ -14,21 +14,31 @@ const main = async () => {
   // const wallet = await ethers.Wallet.fromMnemonic(process.env.MNEMONIC_SEED)
   console.log('Account 1 test user address:', testUser.address)
 
-  //const perpetualContractAddress = '0x67e8B6C4C72Be2A56F858279919B7cBC4BfF3084' // Address for Kovan
-  const empContractAddress = '0xdC5737e4EA1871a5F74AeB29ea730AcdEEb2C6FF'
-  // const empContractAddress = '0xA1dF1Eb9bEB2f91444E2880E2B204096057b281d' // Address for Kovan
-  const collateralAddressUMA = '0xdDACba7F8F2BF72fF1da675d3f9db8e8296AA96B'
-  //const collateralAddressUMA = '0x4f96fe3b7a6cf9725f59d353f723c1bdb64ca6aa' //Address for Kovan
-  const phmAddressUma = '0x3Fd08B74d55c548d497fD6b51BB2A21d53A2a1a3'
-  //const phmAddressUma = '0x0e47a28e4f16db3a2583ab4195a7ba49a3e9cfe6' // Address for Kovan
+  // KOVAN ADDRESSES
+  //const perpetualContractAddress = '0x67e8B6C4C72Be2A56F858279919B7cBC4BfF3084'
+  //const empContractAddress = '0xA1dF1Eb9bEB2f91444E2880E2B204096057b281d'
+  //const collateralAddressUMA = '0x4f96fe3b7a6cf9725f59d353f723c1bdb64ca6aa'
+  //const phmAddressUma = '0x0e47a28e4f16db3a2583ab4195a7ba49a3e9cfe6'
+
+  // LOCAL ADDRESSES
+  const empContractAddress = '0x19E279D71a4E6Feb2866e26Db147b3aF35206B90'
+  const collateralAddressUMA = '0x9f3fC05efcDEf107F6ce78637d168edA12F09044'
+  const phmAddressUma = '0xe0Cf0430938Af024dAe48CAc8C403a22C3a82cD2'
 
   // Deploy Minter contract
   const minterFactory = await ethers.getContractFactory('Minter')
+  const collateralToken = await ethers.getContractAt(
+    'TestnetERC20',
+    collateralAddressUMA,
+    deployer
+  )
+  /*
   const empContractInstance = await ethers.getContractAt(
     'ExpiringMultiParty',
     empContractAddress,
     deployer
   )
+  */
   let minterContract = await minterFactory.deploy(
     phmAddressUma,
     empContractAddress
@@ -38,25 +48,11 @@ const main = async () => {
   // Initialize minter & add DAI collateral
   await minterContract.initialize()
   await minterContract.addCollateralAddress(collateralAddressUMA)
-  /*
-  // Add minterContract as minter for DAI
-  await daiContract.addMinter(minterContract.address)
 
-  // Add minterContract as minter & burner for PHM
-  await phmContract.addMinter(minterContract.address)
-  await phmContract.addBurner(minterContract.address)
-*/
+  // Remove on kovan, added to compensate for conversion problems
+  await collateralToken.allocateTo(minterContract.address, parseEther('10000'))
 
-  // Add ether to smart contract
-  // await minterContract.sendEther({ value: parseEther('123') })
   console.log('Minter address: ', minterContract.address)
-
-  // To be removed as well (moved to redeem function)
-  // await minterContract.approveCollateralSpend(
-  //   // to be removed as well
-  //   daiContract.address,
-  //   parseEther('100000')
-  // )
 
   saveFrontendFiles(
     collateralAddressUMA,
@@ -85,7 +81,6 @@ const saveFrontendFiles = (
   }
 
   // Copy contract addresses to /frontend/src/contracts/contract-address.json directory
-  // TODO: change to .address if we can deploy here
   fs.writeFileSync(
     contractsDir + '/contract-address.json',
     JSON.stringify(
