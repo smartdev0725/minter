@@ -14,33 +14,12 @@ const main = async () => {
   // const wallet = await ethers.Wallet.fromMnemonic(process.env.MNEMONIC_SEED)
   console.log('Account 1 test user address:', testUser.address)
 
-  /*
-  // Deploy dummy DAI contract
-  const daiFactory = await ethers.getContractFactory('ExpandedERC20')
-  let daiContract = await daiFactory.deploy('DAI', 'DAI', '18')
-  daiContract = await daiContract.deployed()
-  await daiContract.addMinter(deployer.address)
-  await daiContract.mint(testUser.address, parseEther('1000'))
-
-  // Deploy PHM contract (by deploying TokenFactory & calling TokenFactory.createToken())
-  const tokenFactory = await ethers.getContractFactory('TokenFactory')
-  let tokenContract = await tokenFactory.deploy()
-  tokenContract = await tokenContract.deployed()
-
-  const tx = await tokenContract.createToken('Mochi PH Token', 'PHM', '18')
-  const txReceiptEvent = (await tx.wait()).events.pop()
-  const phmContract = (await ethers.getContractAt(
-    'ExpandedERC20',
-    txReceiptEvent.address,
-    deployer
-  )) as Contract
-*/
   //const perpetualContractAddress = '0x67e8B6C4C72Be2A56F858279919B7cBC4BfF3084' // Address for Kovan
-  const empContractAddress = '0x6F94a615461267b18Fb5BdF9Aa3D1d37684B1B52'
+  const empContractAddress = '0xdC5737e4EA1871a5F74AeB29ea730AcdEEb2C6FF'
   // const empContractAddress = '0xA1dF1Eb9bEB2f91444E2880E2B204096057b281d' // Address for Kovan
-  const collateralAddressUMA = '0x25D02115bd67258a406A0F676147E6C3598a91a9'
+  const collateralAddressUMA = '0xdDACba7F8F2BF72fF1da675d3f9db8e8296AA96B'
   //const collateralAddressUMA = '0x4f96fe3b7a6cf9725f59d353f723c1bdb64ca6aa' //Address for Kovan
-  const phmAddressUma = '0x15Cc6245B0396Eba7Aea42f2850aA79A200dc33f'
+  const phmAddressUma = '0x3Fd08B74d55c548d497fD6b51BB2A21d53A2a1a3'
   //const phmAddressUma = '0x0e47a28e4f16db3a2583ab4195a7ba49a3e9cfe6' // Address for Kovan
 
   // Deploy Minter contract
@@ -59,7 +38,6 @@ const main = async () => {
   // Initialize minter & add DAI collateral
   await minterContract.initialize()
   await minterContract.addCollateralAddress(collateralAddressUMA)
-
   /*
   // Add minterContract as minter for DAI
   await daiContract.addMinter(minterContract.address)
@@ -70,7 +48,7 @@ const main = async () => {
 */
 
   // Add ether to smart contract
-  await minterContract.sendEther({ value: parseEther('123') })
+  // await minterContract.sendEther({ value: parseEther('123') })
   console.log('Minter address: ', minterContract.address)
 
   // To be removed as well (moved to redeem function)

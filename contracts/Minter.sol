@@ -5,30 +5,41 @@ pragma experimental ABIEncoderV2;
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import './uma/common/SyntheticToken.sol';
-//import './common/implementation/FixedPoint.sol';
-//import './uma/perpetual-multiparty/Perpetual.sol';
 import './uma/expiring-multiparty/ExpiringMultiParty.sol';
 
 contract Minter is Lockable {
   using SafeMath for uint256;
   using FixedPoint for FixedPoint.Unsigned;
+  using SafeERC20 for IERC20;
+  using SafeERC20 for ExpandedIERC20;
+
   bool private initialized;
   address private _phmAddress;
   address private _contractCreator;
-  address public _perpetualContractAddress;
+  address public _financialContractAddress;
 
-  // TODO: To be removed after debugging
-  address public constant collateralAddressUMA =
-    0x25D02115bd67258a406A0F676147E6C3598a91a9;
+  // EMP Contract reference
+  ExpiringMultiParty emp;
+
+  // PHM/ UBE token reference
+  SyntheticToken phmToken;
 
   // TODO: to be removed upon integrating with DVM
-  uint256 internal constant phpDaiStubExchangeRate = 48000000000000000000;
+  FixedPoint.Unsigned phpDaiStubExchangeRate = FixedPoint.fromUnscaledUint(48);
+  // Enables the dApp to send upto 2 decimal points
+  FixedPoint.Unsigned decimalPadding = FixedPoint.fromUnscaledUint(100);
 
   // map collateralAddress balance to user
-  mapping(address => mapping(address => uint256)) collateralBalances;
+  mapping(address => mapping(address => CollateralPositions)) collateralBalances;
 
   // stores the diff collateral types that can mint synthetics
   address[] private collateralAddresses;
+
+  // This struct acts as bookkeeping for how much of that collateral is allocated to each sponsor and how much tokens was minted by that sponsor
+  struct CollateralPositions {
+    FixedPoint.Unsigned totalTokensMinted;
+    FixedPoint.Unsigned totalCollateralAmount;
+  }
 
   /****************************************
    *                EVENTS                *
@@ -45,7 +56,6 @@ contract Minter is Lockable {
   );
   event Mint(address indexed user, uint256 value);
   event Burn(address indexed user, uint256 value);
-  event ApprovedAllowance(address indexed user, uint256 value);
 
   /****************************************
    *               MODIFIERS              *
@@ -56,39 +66,28 @@ contract Minter is Lockable {
     _;
   }
 
+  modifier isAdmin() {
+    _isAdmin();
+    _;
+  }
+
   /****************************************
    *           PUBLIC FUNCTIONS           *
    ****************************************/
 
-  constructor(address phmAddress, address empContractAddress)
+  constructor(address phmAddress, address payable empContractAddress)
     public
     nonReentrant()
   {
     _phmAddress = phmAddress;
-    _perpetualContractAddress = empContractAddress;
+    _financialContractAddress = empContractAddress;
     _contractCreator = msg.sender;
-    //  positionManager = ExpiringMultiParty(empContractAddress);
-    // perpetualCreator = PerpetualCreator(_perpetualContractAddress);
+    emp = ExpiringMultiParty(empContractAddress);
+    phmToken = SyntheticToken(_phmAddress);
   }
 
   function initialize() public nonReentrant() {
     initialized = true;
-  }
-
-  function sendEther() public payable {
-    return;
-  }
-
-  function approveCollateralSpend(address _collateralAddress, uint256 amount)
-    public
-    isInitialized()
-  {
-    // TODO: Add role/admin, check MultiRole.sol
-    //require(isAdmin() == true, 'Sender is not allowed to do this action');
-    IERC20 token = ExpandedIERC20(_collateralAddress);
-    token.approve(_perpetualContractAddress, amount);
-
-    emit ApprovedAllowance(_collateralAddress, amount);
   }
 
   function depositByCollateralAddress(
@@ -105,165 +104,94 @@ contract Minter is Lockable {
     );
 
     // Collateral token
-    IERC20 token = ExpandedIERC20(_collateralAddress);
-    // PHM token
-    SyntheticToken phmToken = SyntheticToken(_phmAddress);
+    IERC20 collateralToken = ExpandedIERC20(_collateralAddress);
+
+    // Convert uint256 values from parameters to FixedPoint.Unsigned
+    // FixedPoint.fromUnscaledUint converts ether value to wei
+    FixedPoint.Unsigned memory collateral =
+      FixedPoint.fromUnscaledUint(_collateralAmount).divCeil(decimalPadding);
+    FixedPoint.Unsigned memory tokens =
+      collateral.divCeil(phpDaiStubExchangeRate);
 
     // Check if user has enough balance
     require(
-      token.balanceOf(msg.sender) >= _collateralAmount,
+      collateralToken.balanceOf(msg.sender) >= collateral.rawValue,
       'Not enough collateral amount'
     );
 
     // Transfer collateral from user to this contract
-    token.transferFrom(msg.sender, address(this), _collateralAmount);
-
-    // Update collateral balance deposited in this contract
-    _addCollateralBalances(_collateralAmount, _collateralAddress);
+    collateralToken.transferFrom(
+      msg.sender,
+      address(this),
+      collateral.rawValue
+    );
 
     // Emit successful deposit event
     emit DepositedCollateral(msg.sender, _collateralAmount, _collateralAddress);
-  }
 
-  function mintFromUMA(
-    address _collateralAddress,
-    uint256 _collateralAmount,
-    uint256 _mintedTokens
-  ) public payable {
-    // Check if we have enough collateral inside the contract
-    // TODO: integrate with the deposit function
-    require(
-      getTotalCollateralByCollateralAddress(_collateralAddress) > 0,
-      'Not enough collateral in contract'
-    );
-
-    // Instance of the collateral token
-    IERC20 token = ExpandedIERC20(_collateralAddress);
-
-    // Approve perpetual to do safeTransfer from this contract with the collateral amount as limit
-    token.approve(_perpetualContractAddress, _collateralAmount);
-
-    // Check if there is enough allowance for transfer
-    uint256 allowance =
-      token.allowance(address(this), _perpetualContractAddress);
-    require(allowance >= _collateralAmount, 'Check the token allowance');
-
-    // Check if right collateral address
-    require(
-      _collateralAddress == collateralAddressUMA,
-      'Check collateral address'
-    );
-
-    // Check if parameters are 0
-    require(_mintedTokens > 100000000000000, 'Less than minimum tokens');
-    require(_collateralAmount > 0, 'No collateral');
-
-    // Create new instance of the EMP
-    ExpiringMultiParty emp = ExpiringMultiParty(_perpetualContractAddress);
-
-    // Convert uint256 values from parameters to FixedPoint.Unsigned
-    FixedPoint.Unsigned memory collateral =
-      FixedPoint.fromUnscaledUint(_collateralAmount);
-    FixedPoint.Unsigned memory tokens =
-      FixedPoint.fromUnscaledUint(_mintedTokens);
-
+    collateralToken.approve(_financialContractAddress, collateral.rawValue);
     emp.create(collateral, tokens);
 
-    /*
-    //========= Call version ========= //
+    phmToken.approve(address(this), tokens.rawValue);
+    phmToken.transfer(msg.sender, tokens.rawValue);
 
-    bytes memory data =
-      abi.encodeWithSignature(
-        'create((uint256),(uint256))',
-        collateral,
-        tokens
-      );
-
-    (bool success, bytes memory result) =
-      address(_perpetualContractAddress).call(data);
-
-    //require(success == true, 'Low level call failed');
-
-    */
-
-    // TODO: Send back synthetic to user
-    // phmToken.approve(address(this), mintedTokens);
-    // phmToken.transfer(msg.sender, mintedTokens);
-
+    // Update collateral balance deposited in this contract
+    _addCollateralBalances(collateral, tokens, _collateralAddress);
     // emit Mint event
-    emit Mint(msg.sender, _mintedTokens);
+    emit Mint(msg.sender, tokens.rawValue);
   }
 
   function redeemByCollateralAddress(
     uint256 _tokenAmount,
     address _collateralAddress
   ) public payable isInitialized() nonReentrant() {
-    // Check if collateral amount is greater than 0
-    require(_tokenAmount > 0, 'Invalid token amount.');
-
     // Check if collateral is whitelisted
     require(
       isWhitelisted(_collateralAddress) == true,
       'This is not allowed as collateral.'
     );
-    // Collateral token
-    IERC20 token = ExpandedIERC20(_collateralAddress);
 
-    // PHM token
+    // Convert uint256 values from parameters to FixedPoint.Unsigned
+    // FixedPoint.fromUnscaledUint converts ether value to wei
+    FixedPoint.Unsigned memory tokenAmount =
+      FixedPoint.fromUnscaledUint(_tokenAmount).divCeil(decimalPadding);
+    IERC20 collateralToken = ExpandedIERC20(_collateralAddress);
 
-    /* 
-    SyntheticToken phmToken = SyntheticToken(_phmAddress);
-
-    require(
-      phmToken.balanceOf(msg.sender) >= _tokenAmount,
-      'Not enough PHM balance'
-    );
-
-    // TODO: UMA -- burn phm token
-    // user transfer PHM to contract for burning
-    phmToken.approve(address(this), _tokenAmount);
-    // phmToken.safeApprove(msg.sender, _tokenAmou);
-
-    phmToken.safeTransferFrom(msg.sender, address(this), _tokenAmount);
+    // Approve financial contract to transfer synthetic from minter to emp for burning
+    phmToken.approve(_financialContractAddress, tokenAmount.rawValue);
+    // Transfer phm/ube tokens from user to minter contract
+    phmToken.transferFrom(msg.sender, address(this), tokenAmount.rawValue);
 
     require(
-      phmToken.balanceOf(address(this)) >= _tokenAmount,
-      'PHM transfer failed.'
+      phmToken.balanceOf(address(this)) >= tokenAmount.rawValue,
+      'Not enough tokens'
     );
 
-    phmToken.burn(_tokenAmount);
+    // Redeem collateral and burn synthetic token
+    emp.redeem(tokenAmount);
 
-    // Emit the burning/ redemption of PHM
-    emit Burn(msg.sender, _tokenAmount);
+    // Burn event
+    emit Burn(msg.sender, tokenAmount.rawValue);
 
-    // TODO: UMA -- check the conversion Rate
-    uint256 redeemedCollateral = _tokenAmount.div(phpDaiStubExchangeRate);
+    // Convert tokens to collateral equivalent TODO: Check how this works with the price identifier
+    FixedPoint.Unsigned memory redeemedCollateral =
+      tokenAmount.mul(phpDaiStubExchangeRate);
 
-    // TODO: Integrate with UMA  -- Check if redeemedCollateral is less than or equal to total user collateral
-    require(
-      getUserCollateralByCollateralAddress(_collateralAddress) >=
-        redeemedCollateral,
-      'Not enough collateral from user'
-    );
+    // Transfer withdrawn collateral to user
+    collateralToken.transfer(msg.sender, redeemedCollateral.rawValue);
 
-    require(
-      getTotalCollateralByCollateralAddress(_collateralAddress) > 0,
-      'No collateral in contract'
-    );
-    // Remove collateral from record
-    _removeCollateralBalances(redeemedCollateral, _collateralAddress);
-
-    // Transfer collateral from Minter contract to msg.sender
-    approveCollateralSpend(_collateralAddress, redeemedCollateral);
-    token.safeTransfer(msg.sender, redeemedCollateral);
-
-    emit WithdrawnCollateral(
-      msg.sender,
+    //update balances
+    _removeCollateralBalances(
       redeemedCollateral,
+      tokenAmount,
       _collateralAddress
     );
 
-    */
+    emit WithdrawnCollateral(
+      msg.sender,
+      redeemedCollateral.rawValue,
+      _collateralAddress
+    );
   }
 
   /**
@@ -285,6 +213,7 @@ contract Minter is Lockable {
   /**
    * Returns total user collateral in the contract
    */
+
   function getUserCollateralByCollateralAddress(address _collateralAddress)
     public
     view
@@ -294,38 +223,67 @@ contract Minter is Lockable {
       isWhitelisted(_collateralAddress) == true,
       'Collateral address is not whitelisted.'
     );
-    return collateralBalances[msg.sender][_collateralAddress];
+
+    CollateralPositions storage position =
+      collateralBalances[msg.sender][_collateralAddress];
+    return position.totalCollateralAmount.rawValue;
   }
 
+  /**
+   * Returns total user minted tokens from Minter
+   */
+  function getUserTotalMintedTokensByCollateralAddress(
+    address _collateralAddress
+  ) public view returns (uint256) {
+    require(
+      isWhitelisted(_collateralAddress) == true,
+      'Collateral address is not whitelisted.'
+    );
+
+    CollateralPositions storage position =
+      collateralBalances[msg.sender][_collateralAddress];
+
+    return position.totalTokensMinted.rawValue;
+  }
+
+  /**
+   * Returns the latest conversion rate
+   */
   function getConversionRate(address _collateralAddress)
     public
     view
     returns (uint256)
   {
-    // TODO: conversion rate per collateral address
-    // Check transformprice
-    return phpDaiStubExchangeRate;
+    // TODO: conversion rate per collateral address  Check transformprice
+    // TODO: set phpDaiStubRate to return here
+    return phpDaiStubExchangeRate.rawValue;
   }
 
+  /**
+   * Returns the financial contract address (EMP/Perpetual)
+   */
   function getFinancialContractAddresss()
     public
     nonReentrant()
     returns (address)
   {
-    return _perpetualContractAddress;
+    return _financialContractAddress;
   }
 
-  function setFinancialContractAddress(address contractAddress)
+  /**
+   * Sets the financial contract if you are the admin (contract creator)
+   */
+  function setFinancialContractAddress(address payable contractAddress)
     public
     nonReentrant()
+    isAdmin()
   {
-    require(
-      msg.sender == _contractCreator,
-      'You are not the owner of the contract'
-    );
-    _perpetualContractAddress = contractAddress;
+    _financialContractAddress = contractAddress;
   }
 
+  /**
+   * Whitelist collateral in the minter contract (this doesnt whitelist it on the uma contracts)
+   */
   function addCollateralAddress(address _collateralAddress)
     public
     isInitialized()
@@ -337,6 +295,9 @@ contract Minter is Lockable {
     }
   }
 
+  /**
+   * Remove whitelisted collateral in the minter contract (this doesnt remove whitelist on the uma contracts)
+   */
   function removeCollateralAddress(address _collateralAddress)
     public
     isInitialized()
@@ -351,6 +312,9 @@ contract Minter is Lockable {
     }
   }
 
+  /**
+   * Check if contract address is a whitelisted collateral in the minter contract (this doesnt check whitelisted collaterals on the UMA contracts)
+   */
   function isWhitelisted(address _collateralAddress)
     public
     view
@@ -369,14 +333,6 @@ contract Minter is Lockable {
     }
   }
 
-  function isAdmin() public view returns (bool) {
-    if (msg.sender == _contractCreator) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
   /****************************************
    *          INTERNAL FUNCTIONS          *
    ****************************************/
@@ -385,40 +341,31 @@ contract Minter is Lockable {
     require(initialized, 'Uninitialized contract');
   }
 
-  function _addCollateralBalances(uint256 value, address _collateralAddress)
-    internal
-  {
-    uint256 collateralBalance =
+  function _isAdmin() internal view returns (bool) {
+    require(msg.sender == _contractCreator, 'You are not the contract owner.');
+  }
+
+  function _addCollateralBalances(
+    FixedPoint.Unsigned memory value,
+    FixedPoint.Unsigned memory numTokens,
+    address _collateralAddress
+  ) internal {
+    CollateralPositions storage position =
       collateralBalances[msg.sender][_collateralAddress];
-    collateralBalances[msg.sender][_collateralAddress] = collateralBalance.add(
-      value
-    );
+
+    position.totalCollateralAmount = position.totalCollateralAmount.add(value);
+    position.totalTokensMinted = position.totalTokensMinted.add(numTokens);
   }
 
-  function _removeCollateralBalances(uint256 value, address _collateralAddress)
-    internal
-  {
-    uint256 collateralBalance =
+  function _removeCollateralBalances(
+    FixedPoint.Unsigned memory value,
+    FixedPoint.Unsigned memory numTokens,
+    address _collateralAddress
+  ) internal {
+    CollateralPositions storage position =
       collateralBalances[msg.sender][_collateralAddress];
-    collateralBalances[msg.sender][_collateralAddress] = collateralBalance.sub(
-      value
-    );
+
+    position.totalCollateralAmount = position.totalCollateralAmount.sub(value);
+    position.totalTokensMinted = position.totalTokensMinted.sub(numTokens);
   }
-
-  // Functions for interacting with UMA in this smart contract
-  // TODO: Check data types
-  function _requestWithdrawal(uint256 denominatedCollateralAmount) internal {
-    // TODO: parse to fixed point
-    // TODO: send withdrawal requests
-  }
-
-  function _executeWithdrawal(uint256 amountWithdrawn) internal {}
-
-  function _cancelWithdrawal() internal {}
-
-  function _calculateRewards(
-    uint256 entryTimestamp,
-    uint256 currentTimestamp,
-    uint256 value
-  ) internal {}
 }

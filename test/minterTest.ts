@@ -27,7 +27,8 @@ let accounts,
   tokenFactoryLabelString: string = 'TokenFactory',
   // name not as impt, since does not have an artifact to reference since auto deployed by TokenFactory
   phmContractLabelString: string = 'PHMContract',
-  minterContractLabelString: string = 'Minter'
+  minterContractLabelString: string = 'Minter',
+  empContractLabelString: string = 'ExpiringMultiParty'
 
 // account that signs deploy txs
 let contractCreatorAccount: SignerWithAddress
@@ -40,7 +41,8 @@ let tokenFactoryContract: Contract,
   phmContract: Contract,
   minterContract: Contract,
   daiContract: Contract,
-  dumContract: Contract
+  dumContract: Contract,
+  empContract: Contract
 
 // PHM Token Details
 const tokenDetails = {
@@ -69,6 +71,9 @@ const collateralDeposit = 150
 const expectedPHM = collateralDeposit * 50
 const collateralToRedeem = 100
 const expectedConvertedCollateral = 2
+const empContractAddress = '0xe93194815959Fb5879daC1283b912AD78c3D13c3'
+const collateralAddressUMA = '0x25AF99b922857C37282f578F428CB7f34335B379'
+const phmAddressUma = '0x55aec27A24933F075c6b178fb0DDD5346104E6f1'
 
 // single run per test setup
 before(async () => {
@@ -81,19 +86,10 @@ before(async () => {
   // create the collateral token (this should be the existing DAI contract not created by us)
   it('Can deploy and get ref to DAI Contract', async () => {
     // deploy Contract with 'expect' assurances
-    daiContract = await deployContract(
-      expandedERC20LabelString,
-      collateralTokenDetails
-    )
+    daiContract = await getContractAt(expandedERC20LabelString, collateralAddressUMA)
 
     // (to check) assign dai address
     collateralAddress = daiContract.address
-
-    // add address as minter - contractCreatorAddress not automatically added as minter for some reason
-    await daiContract.addMinter(contractCreatorAccount.address)
-
-    // mint token
-    await daiContract.mint(contractCreatorAccount.address, collateralToMint)
 
     // get balance
     const daiBalance = BigNumber.from(
@@ -116,47 +112,18 @@ before(async () => {
     tokenFactoryContract = await deployContract(tokenFactoryLabelString)
   })
   */
+>
 
-  it('Deploy UMA and get reference to perpetual contract')
-
-  // create the synthetic token (this should be created by UMA not us)
-  /*
-  it('Can deploy and get ref to PHM Contract', async () => {
-    // create token
-    const tx = await tokenFactoryContract.createToken(
-      tokenDetails.name,
-      tokenDetails.symbol,
-      tokenDetails.decimals,
-      { from: contractCreatorAccount.address }
-    )
-
-    // check transaction receipt to obtain token's address
-    const txReceipt = await tx.wait()
-    const txReceiptEvent = txReceipt.events.pop()
+  it('Deploy UMA and get reference to EMP contract', async () => {
+      empContract = await getContractAt(empContractLabelString, empContractAddress)
+      // TODO: Check if deployed
+      expect(await isValidContract(empContract, empContractLabelString)).to.be.true
+  })
 
  
-    phmContract = await ethers.getContractAt(
-      expandedERC20LabelString,
-      txReceiptEvent.address,
-      accounts[0]
-    )
-
-    // check if valid Contract obj
-    await isValidContract(phmContract, 'expandedERC20LabelString')
-    // check if valid ERC20 Contract obj
-    await isValidERC20(phmContractLabelString, phmContract, tokenDetails)
-  })
-  */
 
   it('Can deploy and get ref to Minter Contract', async () => {
-    let contractFactory = await ethers.getContractFactory(
-      minterContractLabelString
-    )
-
-    expect(await isValidContractFactory(contractFactory)).to.be.true
-
-    minterContract = await contractFactory.deploy(phmContract.address)
-    minterContract = await minterContract.deployed()
+minterContract = await getContractAt(minterContractLabelString, collateralAddressUMA)
 
     expect(await isValidContract(minterContract, minterContractLabelString)).to
       .be.true
@@ -165,17 +132,11 @@ before(async () => {
 
     // whitelist DAI collateral address
     await minterContract.addCollateralAddress(daiContract.address)
+    expect(await minterContract.isWhitelisted(daiContract)).to.be.true
+    
+    await minterContract.sendEther({ value: parseEther('123') })
+    expect(await contractCreatorAccount.getBalance(minterContract.address))
 
-    // add  minterContract as minter
-    // await daiContract.addMinter(minterContract.address)
-
-    // // add minterContract as minter and burner of phm contract
-    // await phmContract.addMinter(minterContract.address)
-    // await phmContract.addBurner(minterContract.address)
-
-    // // approve contract to spend collateral tokens
-    // await daiContract.approve(minterContract.address, 10000)
-    // await phmContract.approve(minterContract.address, 10000)
   })
 
   it('Can deploy a non-collateral ERC token for testing', async () => {
@@ -477,7 +438,3 @@ describe('Can call view functions from the contract', () => {
   })
 })
 
-
-const constructorParams2= {collateralAddress: TestnetERC20.address,priceFeedIdentifier: web3.utils.padRight(web3.utils.fromAscii(‘PHM’)),fundingRateIdentifier: web3.utils.padRight(web3.utils.fromAscii(‘fPHM’)),syntheticName: ‘Halo Dao PHM Token’,syntheticSymbol: ‘PHM’,collateralRequirement: { rawValue: web3.utils.toWei(‘1.5’) },disputeBondPercentage: { rawValue: web3.utils.toWei(‘0.1’) },sponsorDisputeRewardPercentage: { rawValue: web3.utils.toWei(‘0.1’) },disputerDisputeRewardPercentage: { rawValue: web3.utils.toWei(‘0.1’) },minSponsorTokens: { rawValue: ‘100000000000000’ },tokenScaling: { rawValue: web3.utils.toWei(‘0.1’) },withdrawalLiveness: 7200,liquidationLiveness: 7200}
-
-let configStore = {timelockLiveness: 129600,rewardRatePerSecond: { rawValue: web3.utils.toWei(‘0.0000001’) },proposerBondPercentage:{ rawValue: web3.utils.toWei(‘5’) },maxFundingRate: { rawValue: web3.utils.toWei(’10’) },minFundingRate: { rawValue: web3.utils.toWei(‘5’) },proposalTimePastLimit: 7200}

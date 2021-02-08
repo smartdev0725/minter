@@ -20,7 +20,7 @@ import PHMArtifact from './contracts/PHM.json'
 import DAIArtifact from './contracts/DAI.json'
 import PerpetualArtifact from './contracts/Perpetual.json'
 import MinterArtifact from './contracts/Minter.json'
-import { ethers } from 'ethers'
+import { BigNumber, ethers } from 'ethers'
 import { ExpandedIERC20, Minter, Perpetual } from './typechain'
 import { bigNumberToFloat, formatBalance } from './utils/StringUtils'
 import InvalidNetwork from './components/InvalidNetwork'
@@ -401,7 +401,7 @@ const App = () => {
                   {userAddress && (
                     <Box mt={1}>
                       <Typography variant="caption">
-                        1 DAI = {conversionRate.toFixed(2)} PHM
+                        1 DAI = {conversionRate?.toFixed(2)} PHM
                       </Typography>
                     </Box>
                   )}

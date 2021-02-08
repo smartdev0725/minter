@@ -16,7 +16,7 @@ import {
 import SwapVertIcon from '@material-ui/icons/SwapVert'
 import { ExpandedIERC20, Minter } from '../typechain'
 import contractAddressObject from '../contracts/contract-address.json'
-import { ChainError } from '../config/enums'
+import { ChainError, ContractHelper } from '../config/enums'
 import { parseEther, parseUnits } from 'ethers/lib/utils'
 import { formatBalance } from '../utils/StringUtils'
 
@@ -62,7 +62,7 @@ const Redeem = ({
   const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
-    setDaiToBeRedeemed(withdrawAmount / conversionRate)
+    setDaiToBeRedeemed(withdrawAmount * conversionRate)
 
     if (withdrawAmount > 0 && withdrawAmount <= phmBalance) {
       setCanWithdraw(true)
@@ -89,9 +89,10 @@ const Redeem = ({
       console.log('Approved spend collateral tokens')
 
       const tx = await minterContract.redeemByCollateralAddress(
-        amount,
+        (withdrawAmount * ContractHelper.DECIMALPADDING).toFixed(0),
         contractAddressObject.DAI
       )
+
       console.log('Redeemed collateral tokens')
 
       const res = await tx.wait()

@@ -34,3 +34,7 @@ export enum Tokens {
 export enum ChainError {
   REJECTED = 4001
 }
+
+export enum ContractHelper {
+  DECIMALPADDING = 100
+}

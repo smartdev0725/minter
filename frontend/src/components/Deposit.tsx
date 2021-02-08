@@ -16,9 +16,10 @@ import {
 import SwapVertIcon from '@material-ui/icons/SwapVert'
 import { ExpandedIERC20, Minter, Perpetual } from '../typechain'
 import contractAddressObject from '../contracts/contract-address.json'
-import { ChainError } from '../config/enums'
+import { ChainError, ContractHelper } from '../config/enums'
 import { parseEther, parseUnits } from 'ethers/lib/utils'
 import { formatBalance } from '../utils/StringUtils'
+import { BigNumber } from 'ethers'
 
 const useStyles = makeStyles({
   insufficientBalance: {
@@ -91,49 +92,14 @@ const Deposit = ({
       // 0.1 -  approve transfer from msg.sender to minter
       await collateralContract.approve(contractAddressObject.Minter, amount)
 
-      // 0.2 approve transfer from minter to EMP/Perpetual
-      const tx0 = await minterContract.approveCollateralSpend(
-        contractAddressObject.DAI,
-        amount
-      )
-
-      const res0 = await tx0.wait()
-      console.log('Tx result:', res0)
-      console.log('Approved spend collateral tokens')
-
-      /**
-       * UMA Contract direct interaction approach
-       * - create tokens using create function in uma Perpetual Contract
-       * - checking position uma side await perp.positions(this account)
-       * - sync the data with the minter contract
-       */
-      // 1- create tokens from the UMA contract
-      /*
-       await perpetualContract.create(
-        { rawValue: parseEther('150') },
-        { rawValue: parseEther('30') }
-      )
-*/
-
       // 1- deposit collateral
-      const tx1 = await minterContract.depositByCollateralAddress(
-        amount,
+      const tx = await minterContract.depositByCollateralAddress(
+        (daiDeposit * ContractHelper.DECIMALPADDING).toFixed(0),
         contractAddressObject.DAI
       )
 
-      const res1 = await tx1.wait()
-      console.log('Tx result:', res1)
-      console.log('Deposited collateral tokens')
-
-      // 2 - Call create function from UMA to mint tokens
-      const tx2 = await minterContract.mintFromUMA(
-        contractAddressObject.DAI,
-        amount,
-        parseEther(phmToBeMinted.toString())
-      )
-      const res2 = await tx2.wait()
-      console.log('Tx result:', res2)
-      console.log('Minted PHM tokens')
+      const res = await tx.wait()
+      console.log('Tx result:', res)
 
       setIsProcessing(false)
       onDepositSuccessful()
