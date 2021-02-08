@@ -62,7 +62,7 @@ const App = () => {
       : NetworkNames.UNKNOWN
   )
   const [userAddress, setUserAddress] = useState<string>()
-  const [balances, setBalances] = useState<Balances>({ ETH: 0, DAI: 0, PHM: 0 })
+  const [balances, setBalances] = useState<Balances>({ ETH: 0, DAI: 0, UBE: 0 })
   const [conversionRate, setConversionRate] = useState(0)
   const [showDepositModal, setShowDepositModal] = useState(false)
   const [showRedeemModal, setShowRedeemModal] = useState(false)
@@ -131,11 +131,11 @@ const App = () => {
     }
 
     getUserAddressAndBalance().then(initContracts)
-  }, [injectedProvider])
+  }, [injectedProvider]) //eslint-disable-line
 
   useEffect(() => {
     refreshBalances()
-  }, [phmContract, daiContract])
+  }, [phmContract, daiContract]) //eslint-disable-line
 
   useEffect(() => {
     if (!minterContract || !daiContract) return
@@ -174,7 +174,7 @@ const App = () => {
 
     setInjectedProvider(undefined)
     setUserAddress(undefined)
-    setBalances({ ETH: 0, PHM: 0, DAI: 0 })
+    setBalances({ ETH: 0, UBE: 0, DAI: 0 })
   }
 
   const watch = (provider: any) => {
@@ -197,7 +197,7 @@ const App = () => {
   }
 
   const refreshBalances = async () => {
-    let phmBalance = balances.PHM
+    let phmBalance = balances.UBE
     let daiBalance = balances.DAI
 
     if (phmContract) {
@@ -208,7 +208,7 @@ const App = () => {
 
         if (userAddress) {
           const bal = await phmContract.balanceOf(userAddress)
-          console.log('PHM balance:', bal)
+          console.log('UBE balance:', bal)
           phmBalance = bigNumberToFloat(bal)
         }
       } catch (err) {
@@ -222,7 +222,7 @@ const App = () => {
       daiBalance = bigNumberToFloat(bal)
     }
 
-    setBalances({ ...balances, PHM: phmBalance, DAI: daiBalance })
+    setBalances({ ...balances, UBE: phmBalance, DAI: daiBalance })
   }
 
   return (
@@ -235,7 +235,7 @@ const App = () => {
         minterContract={minterContract}
         collateralContract={daiContract}
         onDepositSuccessful={() => {
-          enqueueSnackbar('PHM successfully minted!', { variant: 'success' })
+          enqueueSnackbar('UBE successfully minted!', { variant: 'success' })
           refreshBalances()
           setShowDepositModal(false)
         }}
@@ -249,7 +249,7 @@ const App = () => {
       <Redeem
         isOpen={showRedeemModal}
         onClose={() => setShowRedeemModal(false)}
-        phmBalance={balances['PHM']}
+        ubeBalance={balances['UBE']}
         conversionRate={conversionRate}
         minterContract={minterContract}
         phmContract={phmContract}
@@ -291,7 +291,7 @@ const App = () => {
                 {injectedProvider && network !== NetworkNames.LOCAL && (
                   <Box mt={1}>
                     <Alert severity="error">
-                      To use our PHM minter, you need to be on the{' '}
+                      To use our UBE minter, you need to be on the{' '}
                       {NetworkNames.LOCAL} network.
                     </Alert>
                   </Box>
@@ -339,7 +339,7 @@ const App = () => {
               <Box p={2}>
                 <Typography variant="caption">MINTER</Typography>
                 <Box mt={2} textAlign="center">
-                  <Typography variant="subtitle2">Total PHM supply</Typography>
+                  <Typography variant="subtitle2">Total UBE supply</Typography>
                   <Typography variant="h2">
                     {formatBalance(phmTotalSupply)}
                   </Typography>
@@ -390,7 +390,7 @@ const App = () => {
                   {userAddress && (
                     <Box mt={1}>
                       <Typography variant="caption">
-                        1 DAI = {conversionRate.toFixed(2)} PHM
+                        1 DAI = {conversionRate.toFixed(2)} UBE
                       </Typography>
                     </Box>
                   )}

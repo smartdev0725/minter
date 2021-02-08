@@ -10,7 +10,7 @@ import {
 import { formatBalance, shortenAddress } from '../utils/StringUtils'
 import ETHIcon from '../assets/eth.svg'
 import DAIIcon from '../assets/dai.svg'
-import PHMIcon from '../assets/phm.svg'
+import UBEIcon from '../assets/phm.svg'
 import DisconnectIcon from '@material-ui/icons/ExitToApp'
 import { Tokens } from '../config/enums'
 import { Balances } from '../config/types'
@@ -53,7 +53,7 @@ const AddressAndBalance = ({
                           ? ETHIcon
                           : token === Tokens.DAI
                           ? DAIIcon
-                          : PHMIcon
+                          : UBEIcon
                       }
                       alt={token}
                     />
