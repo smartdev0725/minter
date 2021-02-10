@@ -1,6 +1,6 @@
 # Setup checklist
 
-[ ] Clone UMA protocol from
+[ ] Clone UMA protocol from [here](https://github.com/HaloDAO/protocol)
 
 # Setup environment variables
 
