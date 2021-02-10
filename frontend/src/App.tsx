@@ -54,6 +54,13 @@ const web3Modal = new Web3Modal({
   }
 })
 
+// Get target network from `CHAIN_NETWORK` env variable
+// The env variable needs to be defined in .env file locally or from command line
+const targetNetwork = process.env.REACT_APP_CHAIN_NETWORK
+  ? (process.env.REACT_APP_CHAIN_NETWORK as NetworkNames)
+  : NetworkNames.LOCAL
+console.log('targetNetwork:', targetNetwork)
+
 const App = () => {
   const [injectedProvider, setInjectedProvider] = useState<Web3Provider>()
   const [network, setNetwork] = useState(
@@ -101,7 +108,7 @@ const App = () => {
 
     const initContracts = () => {
       // Early return if connected to other network
-      if (network !== NetworkNames.LOCAL) return
+      if (network !== targetNetwork) return
 
       setShowInvalidNetworkModal(false)
 
@@ -273,6 +280,7 @@ const App = () => {
       />
 
       <InvalidNetwork
+        targetNetwork={targetNetwork}
         isOpen={showInvalidNetworkModal}
         onClose={() => setShowInvalidNetworkModal(false)}
       />
@@ -288,11 +296,11 @@ const App = () => {
               <Box p={2}>
                 <Typography variant="caption">CURRENT NETWORK</Typography>
                 <Typography>{network}</Typography>
-                {injectedProvider && network !== NetworkNames.LOCAL && (
+                {injectedProvider && network !== targetNetwork && (
                   <Box mt={1}>
                     <Alert severity="error">
                       To use our UBE minter, you need to be on the{' '}
-                      {NetworkNames.LOCAL} network.
+                      {targetNetwork} network.
                     </Alert>
                   </Box>
                 )}
@@ -352,7 +360,7 @@ const App = () => {
                         color="primary"
                         onClick={() => {
                           if (injectedProvider) {
-                            if (network === NetworkNames.LOCAL) {
+                            if (network === targetNetwork) {
                               setShowDepositModal(true)
                             } else {
                               setShowInvalidNetworkModal(true)
@@ -371,7 +379,7 @@ const App = () => {
                         variant="contained"
                         onClick={() => {
                           if (injectedProvider) {
-                            if (network === NetworkNames.LOCAL) {
+                            if (network === targetNetwork) {
                               setShowRedeemModal(true)
                             } else {
                               setShowInvalidNetworkModal(true)

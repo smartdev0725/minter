@@ -19,6 +19,7 @@ const main = async () => {
   daiContract = await daiContract.deployed()
   await daiContract.addMinter(deployer.address)
   await daiContract.mint(testUser.address, parseEther('1000'))
+  console.log('daiContract created at address: ', daiContract.address)
 
   // Deploy UBE contract (by deploying TokenFactory & calling TokenFactory.createToken())
   const tokenFactory = await ethers.getContractFactory('TokenFactory')
@@ -32,11 +33,13 @@ const main = async () => {
     txReceiptEvent.address,
     deployer
   )) as Contract
+  console.log('ubeContract created at address: ', ubeContract.address)
 
   // Deploy Minter contract
   const minterFactory = await ethers.getContractFactory('Minter')
   let minterContract = await minterFactory.deploy(ubeContract.address)
   minterContract = await minterContract.deployed()
+  console.log('minterContract created at address: ', minterContract.address)
 
   // Initialize minter & add DAI collateral
   await minterContract.initialize()
@@ -56,6 +59,7 @@ const main = async () => {
   //   parseEther('100000')
   // )
 
+  console.log('Contracts deployed & set up. Copying over to frontend...')
   saveFrontendFiles(daiContract, ubeContract, minterContract)
 }
 
@@ -111,6 +115,8 @@ const saveFrontendFiles = (
 
   // Copy typechain to /frontend/src/typechain directory
   fse.copySync(typechainSrcDir, typechainDestDir)
+
+  console.log('Deploy script finished successfully!')
 }
 
 main()
