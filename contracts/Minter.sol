@@ -25,9 +25,10 @@ contract Minter is Lockable {
   SyntheticToken phmToken;
 
   // TODO: to be removed upon integrating with DVM
-  FixedPoint.Unsigned phpDaiStubExchangeRate = FixedPoint.fromUnscaledUint(48);
+  //FixedPoint.Unsigned phpDaiStubExchangeRate = FixedPoint.fromUnscaledUint(48);
+
   // Enables the dApp to send upto 2 decimal points
-  FixedPoint.Unsigned decimalPadding = FixedPoint.fromUnscaledUint(100);
+  //FixedPoint.Unsigned decimalPadding = FixedPoint.fromUnscaledUint(100);
 
   // map collateralAddress balance to user
   mapping(address => mapping(address => CollateralPositions)) collateralBalances;
@@ -109,9 +110,9 @@ contract Minter is Lockable {
     // Convert uint256 values from parameters to FixedPoint.Unsigned
     // FixedPoint.fromUnscaledUint converts ether value to wei
     FixedPoint.Unsigned memory collateral =
-      FixedPoint.fromUnscaledUint(_collateralAmount).divCeil(decimalPadding);
-    FixedPoint.Unsigned memory tokens =
-      collateral.divCeil(phpDaiStubExchangeRate);
+      FixedPoint.fromUnscaledUint(_collateralAmount);
+    // TODO: (2 - GCR)
+    FixedPoint.Unsigned memory tokens = collateral.mul(_getGCRValue());
 
     // Check if user has enough balance
     require(
@@ -127,7 +128,11 @@ contract Minter is Lockable {
     );
 
     // Emit successful deposit event
-    emit DepositedCollateral(msg.sender, _collateralAmount, _collateralAddress);
+    emit DepositedCollateral(
+      msg.sender,
+      collateral.rawValue,
+      _collateralAddress
+    );
 
     collateralToken.approve(_financialContractAddress, collateral.rawValue);
     emp.create(collateral, tokens);
@@ -175,7 +180,7 @@ contract Minter is Lockable {
 
     // Convert tokens to collateral equivalent TODO: Check how this works with the price identifier
     FixedPoint.Unsigned memory redeemedCollateral =
-      tokenAmount.mul(phpDaiStubExchangeRate);
+      tokenAmount.div(_getGCRValue());
 
     // Transfer withdrawn collateral to user
     collateralToken.transfer(msg.sender, redeemedCollateral.rawValue);
@@ -249,14 +254,8 @@ contract Minter is Lockable {
   /**
    * Returns the latest conversion rate
    */
-  function getConversionRate(address _collateralAddress)
-    public
-    view
-    returns (uint256)
-  {
-    // TODO: conversion rate per collateral address  Check transformprice
-    // TODO: set phpDaiStubRate to return here
-    return phpDaiStubExchangeRate.rawValue;
+  function getGCR() public view returns (uint256) {
+    return _getGCRValue().rawValue;
   }
 
   /**
@@ -368,4 +367,16 @@ contract Minter is Lockable {
     position.totalCollateralAmount = position.totalCollateralAmount.sub(value);
     position.totalTokensMinted = position.totalTokensMinted.sub(numTokens);
   }
+
+  function _getGCRValue() internal returns (FixedPoint.Unsigned) {
+    FixedPoint.Unsigned memory gcrValue =
+      emp.totalPositionCollateral().div(emp.totalTokenOutstanding());
+
+    return gcrValue;
+  }
+
+  function _tokensToMint(FixedPoint.Unsigned memory collateralAmount)
+    internal
+    returns (FixedPoint.Unsigned)
+  {}
 }

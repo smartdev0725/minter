@@ -11,6 +11,7 @@ import {
 import { checkDepositEvent, checkWithdrawalEvent } from './util/CheckEvent'
 import { doesNotMatch } from 'assert'
 import { formatEther, parseEther } from 'ethers/lib/utils'
+import { parse } from 'path'
 
 /**
  * Assert vs expect vs should:
@@ -45,20 +46,6 @@ let tokenFactoryContract: Contract,
   dumContract: Contract,
   empContract: Contract
 
-// PHM Token Details
-const tokenDetails = {
-  name: 'Mochi PH Token',
-  symbol: 'PHM',
-  decimals: '18'
-}
-
-// Fake DAI Collaeral details
-const collateralTokenDetails = {
-  name: 'DAI Dummy Token',
-  symbol: 'DAI',
-  decimals: '18'
-}
-
 // Fake DAI Collaeral details
 const nonCollateralTokenDetails = {
   name: 'DUM Dummy Token',
@@ -70,10 +57,10 @@ const nonCollateralTokenDetails = {
 //const collateralToMint = BigNumber.from('10000000000799840000000000000000')
 const collateralDeposit = BigNumber.from(parseEther('48000')) // total collateral to be deposited
 const collateralDepositNumber = BigNumber.from('4800000') // padded with 2 extra zeroes
-const expectedPHM = collateralDeposit.div(BigNumber.from(parseEther('48')))
+const expectedPHM = BigNumber.from(parseEther('1000'))
 const collateralToRedeemNumber = BigNumber.from('30000') // padded with 2 extra zeroes
 const collateralToRedeem = BigNumber.from(parseEther('300'))
-const expectedConvertedCollateral = 2
+const expectedConvertedCollateral = BigNumber.from(parseEther('14400'))
 const empContractAddress = '0xe93194815959Fb5879daC1283b912AD78c3D13c3'
 const collateralAddressUMA = '0x25AF99b922857C37282f578F428CB7f34335B379'
 const phmAddressUma = '0x55aec27A24933F075c6b178fb0DDD5346104E6f1'
@@ -256,6 +243,7 @@ describe('Can accept collateral and mint synthetic', async () => {
       collateralDeposit,
       `collateral deposit is not equal to ${collateralDeposit}`
     )
+  */
 
     expect(
       await checkDepositEvent(
@@ -266,7 +254,6 @@ describe('Can accept collateral and mint synthetic', async () => {
         expectedPHM
       )
     ).to.be.true
-    */
   })
 
   it('sending non collateral ERC20 to deposit func should not mint PHM, not return PHM to msg.sender and return error', async () => {
@@ -355,7 +342,7 @@ describe('Can redeem synth for original ERC20 collateral', async () => {
         collateralDeposit - expectedConvertedCollateral
       }`
     )
-
+    */
     expect(
       await checkWithdrawalEvent(
         minterContract,
@@ -365,7 +352,6 @@ describe('Can redeem synth for original ERC20 collateral', async () => {
         collateralToRedeem
       )
     ).to.be.true
-    */
   })
   it('sending invalid synth and calling redeem func should not burn synth, not return ERC20 collateral to msg.sender, and return err', async () => {
     // check that noncollateral contract is not whitelsited in the contract
@@ -462,3 +448,21 @@ describe('Can call view functions from the contract', () => {
     expect(await minterContract.isWhitelisted(collateralAddressUMA)).to.be.true
   })
 })
+
+const constructorParams = {
+  expirationTimestamp: '1706780800',
+  collateralAddress: TestnetERC20.address,
+  priceFeedIdentifier: web3.utils.padRight(web3.utils.fromAscii('UMATEST')),
+  syntheticName: 'Test UMA Token',
+  syntheticSymbol: 'UMATEST',
+  collateralRequirement: { rawValue: web3.utils.toWei('1.5') },
+  disputeBondPercentage: { rawValue: web3.utils.toWei('0.1') },
+  sponsorDisputeRewardPercentage: { rawValue: web3.utils.toWei('0.1') },
+  disputerDisputeRewardPercentage: { rawValue: web3.utils.toWei('0.1') },
+  minSponsorTokens: { rawValue: '100000000000000' },
+  timerAddress: Timer.address,
+  withdrawalLiveness: 7200,
+  liquidationLiveness: 7200,
+  excessTokenBeneficiary: '0x0000000000000000000000000000000000000000',
+  financialProductLibraryAddress: '0x0000000000000000000000000000000000000000'
+}

@@ -14,7 +14,7 @@ export const checkDepositEvent = async (
   sender: string,
   address: string,
   collateralValueDeposit: BigNumber,
-  collateralValueMint: BigNumber
+  tokensMinted: BigNumber
 ): Promise<boolean> => {
   let depositEvent = new Promise<DepositedCollateralEvent>(
     (resolve, reject) => {
@@ -50,7 +50,7 @@ export const checkDepositEvent = async (
 
   const eventMint = await mintEvent
   expect(eventMint.user).to.be.equal(sender)
-  expect(eventMint.value).to.be.equal(collateralValueMint)
+  expect(eventMint.value).to.be.equal(tokensMinted)
 
   const eventDeposit = await depositEvent
   expect(eventDeposit.user).to.be.equal(sender)
@@ -66,8 +66,8 @@ export const checkWithdrawalEvent = async (
   contract: Contract,
   sender: string,
   address: string,
-  collateralValue: number,
-  collateralToRedeem: number
+  collateralValue: BigNumber,
+  collateralToRedeem: BigNumber
 ): Promise<boolean> => {
   let withdrawalEvent = new Promise<WithdrawnCollateralEvent>(
     (resolve, reject) => {
