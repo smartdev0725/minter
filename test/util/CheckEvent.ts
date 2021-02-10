@@ -13,8 +13,8 @@ export const checkDepositEvent = async (
   contract: Contract,
   sender: string,
   address: string,
-  collateralValueDeposit: number,
-  collateralValueMint: number
+  collateralValueDeposit: BigNumber,
+  collateralValueMint: BigNumber
 ): Promise<boolean> => {
   let depositEvent = new Promise<DepositedCollateralEvent>(
     (resolve, reject) => {

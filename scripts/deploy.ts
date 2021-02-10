@@ -21,9 +21,9 @@ const main = async () => {
   //const phmAddressUma = '0x0e47a28e4f16db3a2583ab4195a7ba49a3e9cfe6'
 
   // LOCAL ADDRESSES
-  const empContractAddress = '0x19E279D71a4E6Feb2866e26Db147b3aF35206B90'
-  const collateralAddressUMA = '0x9f3fC05efcDEf107F6ce78637d168edA12F09044'
-  const phmAddressUma = '0xe0Cf0430938Af024dAe48CAc8C403a22C3a82cD2'
+  const empContractAddress = '0xe93194815959Fb5879daC1283b912AD78c3D13c3'
+  const collateralAddressUMA = '0x25AF99b922857C37282f578F428CB7f34335B379'
+  const phmAddressUma = '0x55aec27A24933F075c6b178fb0DDD5346104E6f1'
 
   // Deploy Minter contract
   const minterFactory = await ethers.getContractFactory('Minter')

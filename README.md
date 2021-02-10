@@ -1,3 +1,7 @@
+# Setup checklist
+
+[ ] Clone UMA protocol from
+
 # Setup environment variables
 
 1. Go to https://infura.io/ and make an account
@@ -13,17 +17,18 @@
 
 ## Quickstart
 
-1. Run `git clone https://bitbucket.org/bigmochi/dapp-boilerplate && cd dapp-boilerplate`
-2. run `npm i` to install backend dependencies (or just run `npm start` to skip steps 3,4,5 and 8)
-3. Run `npm run compile` to generate typchain typings (skip if you ran `npm start` at #2)
-4. run `npm test` to run contract test suite to run smart contract test cases (skip if you ran `npm start` at #2)
-5. Open another terminal and use ganache node
-   open another terminal and enter truffle console
-   migrate
-
-do parameterize and deploy a contract steps 1- 10 and create new tokens from existing contract step 1
-
-6. on another terminal, run `npm run start:fe` to compile the minter contract and launch minter dApp
+1. Clone the uma protocol from the halodao protocol `git clone https://github.com/HaloDAO/protocol.git`
+2. Run `git clone https://bitbucket.org/bigmochi/phpm-minter-demo && cd dapp-boilerplate`
+3. run `npm i` to install backend dependencies (or just run `npm start` to skip steps 3,4,5 and 8)
+4. Run `npm run compile` to generate typchain typings (skip if you ran `npm start` at #2)
+5. Run `npm test` to run contract test suite to run smart contract test cases (skip if you ran `npm start` at #2)
+6. Open another terminal and go inside the protocol folder of uma. Run `yarn` to install packages.
+7. Run `yarn qbuild` to build smart contracts
+8. Open ganache `npx ganache-cli -p 9545 -e 1000000 -l 10000000`
+9. Open another terminal and enter the uma protocol folder again. Run the truffle console `yarn truffle console --network test`
+10. Migrate contracts by running `migrate` inside truffle.
+11. Do parameterize and deploy a contract steps 1- 10 and create new tokens from existing contract step 1 from this [guide in UMA documentation](https://docs.umaproject.org/build-walkthrough/mint-locally)
+12. on another terminal, go back to the phpm-minter-demo run `npm run start:fe` to compile the minter contract and launch minter dApp
 
 ## Environment Setup
 
