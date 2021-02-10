@@ -2,16 +2,22 @@ import { ethers } from 'hardhat'
 import { assert, expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { BigNumber, Contract } from 'ethers'
+import { deployContract, isValidContract } from './util/DeployContract'
 import {
-  deployContract,
-  isValidContract,
-  isValidContractFactory,
-  isValidERC20
-} from './util/DeployContract'
-import { checkDepositEvent, checkWithdrawalEvent } from './util/CheckEvent'
+  checkChangedFinancialContractAddressEvent,
+  checkDepositEvent,
+  checkWithdrawalEvent
+} from './util/CheckEvent'
 import { doesNotMatch } from 'assert'
-import { formatEther, parseEther } from 'ethers/lib/utils'
-import { parse } from 'path'
+import {
+  base64,
+  formatEther,
+  hexlify,
+  parseBytes32String,
+  parseEther
+} from 'ethers/lib/utils'
+
+import { decodeTx } from 'ethereum-tx-decoder'
 
 /**
  * Assert vs expect vs should:
@@ -54,17 +60,28 @@ const nonCollateralTokenDetails = {
 }
 
 // constants
-//const collateralToMint = BigNumber.from('10000000000799840000000000000000')
-const collateralDeposit = BigNumber.from(parseEther('48000')) // total collateral to be deposited
-const collateralDepositNumber = BigNumber.from('4800000') // padded with 2 extra zeroes
-const expectedPHM = BigNumber.from(parseEther('1000'))
-const collateralToRedeemNumber = BigNumber.from('30000') // padded with 2 extra zeroes
-const collateralToRedeem = BigNumber.from(parseEther('300'))
-const expectedConvertedCollateral = BigNumber.from(parseEther('14400'))
+/**
+ * --RawValue: number in ether format
+ * --Number: Padded decimal format
+ * --no suffix: wei format
+ */
+
+const collateralRawValue = 1500
+const collateralToRedeemRawValue = 30
+const collateralDeposit = BigNumber.from(parseEther(`${collateralRawValue}`)) // total collateral to be deposited
+const collateralToRedeem = BigNumber.from(
+  parseEther(`${collateralToRedeemRawValue}`)
+)
+const collateralDepositNumber = BigNumber.from(`${collateralRawValue * 100}`) // padded with 2 extra zeroes
+const collateralToRedeemNumber = BigNumber.from(
+  `${collateralToRedeemRawValue * 100}`
+) // padded with 2 extra zeroes
 const empContractAddress = '0xe93194815959Fb5879daC1283b912AD78c3D13c3'
 const collateralAddressUMA = '0x25AF99b922857C37282f578F428CB7f34335B379'
 const phmAddressUma = '0x55aec27A24933F075c6b178fb0DDD5346104E6f1'
 const intialCollateral = parseEther('100000')
+
+let expectedPHM, expectedConvertedCollateral
 
 // single run per test setup
 before(async () => {
@@ -179,6 +196,13 @@ describe('Can accept collateral and mint synthetic', async () => {
   beforeEach(async () => {})
 
   it('sending collateral ERC20 to deposit func should mint PHM, return PHM to msg.sender', async () => {
+    expectedPHM = parseEther(
+      `${
+        collateralRawValue /
+        (await minterContract.getConversionRate()).toNumber()
+      }`
+    )
+
     await daiContract.approve(minterContract.address, collateralDeposit)
     // deposit collateral to minter contract
     const depositTxn = await minterContract.depositByCollateralAddress(
@@ -201,49 +225,6 @@ describe('Can accept collateral and mint synthetic', async () => {
         await daiContract.balanceOf(contractCreatorAccount.address)
       ).toString()
     )
-
-    // Check latest values from the contract so need to call again
-    /*
-    expect(
-      BigNumber.from(
-        await daiContract.balanceOf(contractCreatorAccount.address)
-      ).toNumber()
-    ).to.be.equal(
-      collateralToMint.sub(collateralDeposit),
-      `contract ${minterContract.address} does not have expected balance of the difference of collateralDeposit and user previous balance.`
-    )
-
-    expect(
-      BigNumber.from(
-        await daiContract.balanceOf(minterContract.address)
-      ).toNumber()
-    ).to.be.equal(
-      collateralDeposit,
-      `contract ${minterContract.address} does not have expected balance of ${collateralDeposit}`
-    )
-
-    // Check msg.sender PHM balance
-    expect(
-      BigNumber.from(
-        await phmContract.balanceOf(contractCreatorAccount.address)
-      ).toNumber()
-    ).to.be.equal(
-      expectedPHM,
-      `PHM Balance of ${contractCreatorAccount.address} is not equal to ${expectedPHM}`
-    )
-
-    // check collateral deposit is the same as collateralDeposit
-    expect(
-      BigNumber.from(
-        await minterContract.getUserCollateralByCollateralAddress(
-          daiContract.address
-        )
-      ).toNumber()
-    ).to.be.equal(
-      collateralDeposit,
-      `collateral deposit is not equal to ${collateralDeposit}`
-    )
-  */
 
     expect(
       await checkDepositEvent(
@@ -301,7 +282,14 @@ describe('Can accept collateral and mint synthetic', async () => {
 
 describe('Can redeem synth for original ERC20 collateral', async () => {
   it('sending synth and calling redeem func should burn synth, return ERC20 collateral to msg.sender', async () => {
+    expectedConvertedCollateral = parseEther(
+      `${
+        collateralToRedeemRawValue *
+        (await minterContract.getConversionRate()).toNumber()
+      }`
+    )
     await phmContract.approve(minterContract.address, collateralToRedeem)
+
     const redeemTxn = await minterContract.redeemByCollateralAddress(
       collateralToRedeemNumber,
       collateralAddressUMA
@@ -322,27 +310,7 @@ describe('Can redeem synth for original ERC20 collateral', async () => {
         await daiContract.balanceOf(contractCreatorAccount.address)
       ).toString()
     )
-    /*
-    expect(
-      BigNumber.from(
-        await phmContract.balanceOf(contractCreatorAccount.address)
-      ).toNumber()
-    ).to.equal(
-      expectedPHM - collateralToRedeem,
-      `user current balance is not ${expectedPHM - collateralToRedeem}`
-    )
 
-    expect(
-      BigNumber.from(
-        await daiContract.balanceOf(minterContract.address)
-      ).toNumber()
-    ).to.equal(
-      collateralDeposit - expectedConvertedCollateral,
-      `user current balance is not ${
-        collateralDeposit - expectedConvertedCollateral
-      }`
-    )
-    */
     expect(
       await checkWithdrawalEvent(
         minterContract,
@@ -353,6 +321,7 @@ describe('Can redeem synth for original ERC20 collateral', async () => {
       )
     ).to.be.true
   })
+
   it('sending invalid synth and calling redeem func should not burn synth, not return ERC20 collateral to msg.sender, and return err', async () => {
     // check that noncollateral contract is not whitelsited in the contract
     expect(await minterContract.isWhitelisted(nonCollateralAddress)).to.be.false
@@ -369,19 +338,6 @@ describe('Can redeem synth for original ERC20 collateral', async () => {
       )
     }
   })
-
-  /*
-  it('sending invalid synth token amount and calling redeem func should not burn synth, not return ERC20 collateral to msg.sender, and return err', async () => {
-    try {
-      await minterContract.redeemByCollateralAddress(0, nonCollateralAddress)
-      assert(false, 'Error is not thrown')
-    } catch (err) {
-      expect(err.message).to.be.equal(
-        'VM Exception while processing transaction: revert Invalid token amount.'
-      )
-    }
-  })
-  */
 })
 
 describe('Can transfer synth to recipient wallet', () => {})
@@ -389,18 +345,6 @@ describe('Can earn HALO upon synth mint', () => {})
 describe('Can earn HALO on transfer to whitelisted AMM address', () => {})
 
 describe('Can call view functions from the contract', () => {
-  /*
-  it('Can get the balance of a collateral inside the contract', async () => {
-    expect(
-      BigNumber.from(
-        await minterContract.getTotalCollateralByCollateralAddress(
-          daiContract.address
-        )
-      ).toNumber()
-    ).to.be.greaterThan(0)
-  })
-  */
-
   it('Does not return the balance of the collateral and returns an error if not whitelisted', async () => {
     try {
       await minterContract.getTotalCollateralByCollateralAddress(
@@ -428,41 +372,53 @@ describe('Can call view functions from the contract', () => {
   })
 
   it('Can get the current conversion rate for the given collateral', async () => {
-    // Stub for price identifier
+    // Assuming there is a position created already
     expect(
-      BigNumber.from(
-        await minterContract.getConversionRate(collateralAddressUMA)
-      ).toString()
-    ).to.be.equal(parseEther('48'), 'Conversion rate is not equal to 48')
+      (await minterContract.getConversionRate()).toNumber()
+    ).to.be.greaterThan(
+      0,
+      'No position is created to calculate conversion rate'
+    )
+  })
+
+  it('Can get the current conversion rate for the given collateral', async () => {
+    expect((await minterContract.getGCR()).toNumber()).to.be.greaterThan(
+      0,
+      'No position is created to compute GCR'
+    )
   })
 
   it('Can whitelist a collateral address', async () => {
     await minterContract.addCollateralAddress(dumContract.address)
     expect(await minterContract.isWhitelisted(dumContract.address)).to.be.true
   })
+
   it('Can remove a collateral address to the whitelist', async () => {
     await minterContract.removeCollateralAddress(dumContract.address)
     expect(await minterContract.isWhitelisted(dumContract.address)).to.be.false
   })
+
   it('Can check if the given collateral address is in the whitelist', async () => {
     expect(await minterContract.isWhitelisted(collateralAddressUMA)).to.be.true
   })
-})
 
-const constructorParams = {
-  expirationTimestamp: '1706780800',
-  collateralAddress: TestnetERC20.address,
-  priceFeedIdentifier: web3.utils.padRight(web3.utils.fromAscii('UMATEST')),
-  syntheticName: 'Test UMA Token',
-  syntheticSymbol: 'UMATEST',
-  collateralRequirement: { rawValue: web3.utils.toWei('1.5') },
-  disputeBondPercentage: { rawValue: web3.utils.toWei('0.1') },
-  sponsorDisputeRewardPercentage: { rawValue: web3.utils.toWei('0.1') },
-  disputerDisputeRewardPercentage: { rawValue: web3.utils.toWei('0.1') },
-  minSponsorTokens: { rawValue: '100000000000000' },
-  timerAddress: Timer.address,
-  withdrawalLiveness: 7200,
-  liquidationLiveness: 7200,
-  excessTokenBeneficiary: '0x0000000000000000000000000000000000000000',
-  financialProductLibraryAddress: '0x0000000000000000000000000000000000000000'
-}
+  it('Can check the current financial contract address', async () => {
+    expect(await minterContract.getFinancialContractAddress()).to.be.equal(
+      empContractAddress
+    )
+  })
+
+  it('Can change the financial address if owner', async () => {
+    const dummyEmp = '0xc3E4EDA3c2Da722e7b143773EEd77249584B1782'
+    const changeFinancialTx = await minterContract.setFinancialContractAddress(
+      dummyEmp
+    )
+
+    await changeFinancialTx.wait()
+    expect(await minterContract.getFinancialContractAddress()).to.be.equal(
+      dummyEmp
+    )
+
+    checkChangedFinancialContractAddressEvent(minterContract, dummyEmp)
+  })
+})

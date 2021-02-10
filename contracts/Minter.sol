@@ -24,11 +24,8 @@ contract Minter is Lockable {
   // PHM/ UBE token reference
   SyntheticToken phmToken;
 
-  // TODO: to be removed upon integrating with DVM
-  //FixedPoint.Unsigned phpDaiStubExchangeRate = FixedPoint.fromUnscaledUint(48);
-
   // Enables the dApp to send upto 2 decimal points
-  //FixedPoint.Unsigned decimalPadding = FixedPoint.fromUnscaledUint(100);
+  FixedPoint.Unsigned decimalPadding = FixedPoint.fromUnscaledUint(100);
 
   // map collateralAddress balance to user
   mapping(address => mapping(address => CollateralPositions)) collateralBalances;
@@ -57,6 +54,9 @@ contract Minter is Lockable {
   );
   event Mint(address indexed user, uint256 value);
   event Burn(address indexed user, uint256 value);
+  event ChangedFinancialContractAddress(
+    address indexed newFinancialContractAddress
+  );
 
   /****************************************
    *               MODIFIERS              *
@@ -110,9 +110,9 @@ contract Minter is Lockable {
     // Convert uint256 values from parameters to FixedPoint.Unsigned
     // FixedPoint.fromUnscaledUint converts ether value to wei
     FixedPoint.Unsigned memory collateral =
-      FixedPoint.fromUnscaledUint(_collateralAmount);
+      FixedPoint.fromUnscaledUint(_collateralAmount).divCeil(decimalPadding);
     // TODO: (2 - GCR)
-    FixedPoint.Unsigned memory tokens = collateral.mul(_getGCRValue());
+    FixedPoint.Unsigned memory tokens = _tokensToMint(collateral);
 
     // Check if user has enough balance
     require(
@@ -164,6 +164,7 @@ contract Minter is Lockable {
 
     // Approve financial contract to transfer synthetic from minter to emp for burning
     phmToken.approve(_financialContractAddress, tokenAmount.rawValue);
+
     // Transfer phm/ube tokens from user to minter contract
     phmToken.transferFrom(msg.sender, address(this), tokenAmount.rawValue);
 
@@ -180,7 +181,7 @@ contract Minter is Lockable {
 
     // Convert tokens to collateral equivalent TODO: Check how this works with the price identifier
     FixedPoint.Unsigned memory redeemedCollateral =
-      tokenAmount.div(_getGCRValue());
+      _collateralToReceive(tokenAmount);
 
     // Transfer withdrawn collateral to user
     collateralToken.transfer(msg.sender, redeemedCollateral.rawValue);
@@ -255,17 +256,18 @@ contract Minter is Lockable {
    * Returns the latest conversion rate
    */
   function getGCR() public view returns (uint256) {
-    return _getGCRValue().rawValue;
+    FixedPoint.Unsigned memory gcrValue = _getGCRValue();
+    return gcrValue.rawValue;
+  }
+
+  function getConversionRate() public view returns (uint256) {
+    return _getGCRValue().rawValue + 1;
   }
 
   /**
    * Returns the financial contract address (EMP/Perpetual)
    */
-  function getFinancialContractAddresss()
-    public
-    nonReentrant()
-    returns (address)
-  {
+  function getFinancialContractAddress() public view returns (address) {
     return _financialContractAddress;
   }
 
@@ -278,6 +280,7 @@ contract Minter is Lockable {
     isAdmin()
   {
     _financialContractAddress = contractAddress;
+    emit ChangedFinancialContractAddress(contractAddress);
   }
 
   /**
@@ -368,15 +371,24 @@ contract Minter is Lockable {
     position.totalTokensMinted = position.totalTokensMinted.sub(numTokens);
   }
 
-  function _getGCRValue() internal returns (FixedPoint.Unsigned) {
+  function _getGCRValue() internal view returns (FixedPoint.Unsigned memory) {
     FixedPoint.Unsigned memory gcrValue =
-      emp.totalPositionCollateral().div(emp.totalTokenOutstanding());
+      emp.totalPositionCollateral().div(emp.totalTokensOutstanding());
 
     return gcrValue;
   }
 
-  function _tokensToMint(FixedPoint.Unsigned memory collateralAmount)
+  function _tokensToMint(FixedPoint.Unsigned memory _collateralAmount)
     internal
-    returns (FixedPoint.Unsigned)
-  {}
+    returns (FixedPoint.Unsigned memory)
+  {
+    return _collateralAmount.div(getConversionRate());
+  }
+
+  function _collateralToReceive(FixedPoint.Unsigned memory _numTokens)
+    internal
+    returns (FixedPoint.Unsigned memory)
+  {
+    return _numTokens.mul(getConversionRate());
+  }
 }

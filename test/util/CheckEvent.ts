@@ -4,6 +4,7 @@ import { BigNumber, Contract } from 'ethers'
 import { expect } from 'chai'
 import {
   BurnEvent,
+  ChangedFinancialContractAddressEvent,
   DepositedCollateralEvent,
   MintEvent,
   WithdrawnCollateralEvent
@@ -109,6 +110,34 @@ export const checkWithdrawalEvent = async (
   expect(eventWithdrawal.user).to.be.equal(sender)
   expect(eventWithdrawal.collateral).to.be.equal(collateralValue)
   expect(eventWithdrawal.collateralAddress).to.be.equal(address)
+  contract.removeAllListeners()
+
+  return true
+}
+
+export const checkChangedFinancialContractAddressEvent = async (
+  contract: Contract,
+  address: string
+): Promise<boolean> => {
+  let changedFinancialContractAddressEvent = new Promise<ChangedFinancialContractAddressEvent>(
+    (resolve, reject) => {
+      contract.on('WithdrawnCollateral', (newFinancialContractAddress) => {
+        resolve({
+          newFinancialContractAddress: newFinancialContractAddress
+        })
+      })
+
+      setTimeout(() => {
+        reject(new Error('timeout'))
+      }, 60000)
+    }
+  )
+
+  const eventChangedFinancialContractAddress = await changedFinancialContractAddressEvent
+  expect(
+    eventChangedFinancialContractAddress.newFinancialContractAddress
+  ).to.be.equal(address)
+
   contract.removeAllListeners()
 
   return true
