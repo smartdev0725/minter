@@ -78,8 +78,8 @@ const collateralAddressUMA = '0x25AF99b922857C37282f578F428CB7f34335B379'
 const ubeAddressUma = '0x55aec27A24933F075c6b178fb0DDD5346104E6f1'
 const intialCollateral = parseEther('100000')
 
-const expectedUserCollateralLeft = BigNumber.from(parseEther('1440'))
-const expectedUserUBELeft = BigNumber.from(parseEther('720'))
+const expectedUserCollateralLeft = BigNumber.from(parseEther('1410'))
+const expectedUserUBELeft = BigNumber.from(parseEther('470'))
 
 // Value to be set after getting getConversionRate()
 let expectedUBE, expectedConvertedCollateral
@@ -197,17 +197,11 @@ describe('Can accept collateral and mint synthetic', async () => {
   beforeEach(async () => {})
 
   it('sending collateral ERC20 to deposit func should mint UBE, return UBE to msg.sender', async () => {
-    expectedUBE = parseEther(
-      `${
-        collateralRawValue /
-        (await minterContract.getConversionRate()).toNumber()
-      }`
-    )
-
     await daiContract.approve(minterContract.address, collateralDeposit)
     // deposit collateral to minter contract
     const depositTxn = await minterContract.depositByCollateralAddress(
-      collateralDepositNumber,
+      BigNumber.from(`${1500 * 100}`),
+      BigNumber.from(`${500 * 100}`),
       collateralAddressUMA
     )
 
@@ -219,7 +213,7 @@ describe('Can accept collateral and mint synthetic', async () => {
         contractCreatorAccount.address,
         collateralAddressUMA,
         collateralDeposit,
-        expectedUBE
+        BigNumber.from(parseEther('500'))
       )
     ).to.be.true
   })
@@ -231,6 +225,7 @@ describe('Can accept collateral and mint synthetic', async () => {
     try {
       await minterContract.depositByCollateralAddress(
         collateralDeposit,
+        BigNumber.from(`${1500 * 100}`),
         nonCollateralAddress
       )
       assert(false, 'Error is not thrown')
@@ -240,11 +235,12 @@ describe('Can accept collateral and mint synthetic', async () => {
       )
     }
   })
-
+  /*
   it('deposit func should not mint UBE when msg.sender do not  have enough collateral balance and return error', async () => {
     try {
       await minterContract.depositByCollateralAddress(
         parseEther('1230912309123091230192'),
+        BigNumber.from(`${1500 * 100}`),
         collateralAddressUMA
       )
       assert(false, 'Error is not thrown')
@@ -254,16 +250,11 @@ describe('Can accept collateral and mint synthetic', async () => {
       )
     }
   })
+  */
 })
 
 describe('Can redeem synth for original ERC20 collateral', async () => {
   it('sending synth and calling redeem func should burn synth, return ERC20 collateral to msg.sender', async () => {
-    expectedConvertedCollateral = parseEther(
-      `${
-        collateralToRedeemRawValue *
-        (await minterContract.getConversionRate()).toNumber()
-      }`
-    )
     await ubeContract.approve(minterContract.address, collateralToRedeem)
 
     const redeemTxn = await minterContract.redeemByCollateralAddress(
@@ -278,8 +269,8 @@ describe('Can redeem synth for original ERC20 collateral', async () => {
         minterContract,
         contractCreatorAccount.address,
         daiContract.address,
-        expectedConvertedCollateral,
-        collateralToRedeem
+        BigNumber.from(parseEther('90')),
+        BigNumber.from(parseEther('30'))
       )
     ).to.be.true
   })
@@ -373,20 +364,15 @@ describe('Can call view functions from the contract', () => {
   })
 
   it('Can get the current conversion rate for the given collateral', async () => {
-    expect((await minterContract.getGCR()).toNumber()).to.be.greaterThan(
-      0,
-      'No position is created to compute GCR'
+    console.log('GCR: ', (await minterContract.getGCR()).toString())
+    console.log(
+      'UBE GCR: ',
+      formatEther(BigNumber.from(await minterContract.getUBEGCR()))
     )
-  })
-
-  it('Can get the current conversion rate for the given collateral', async () => {
-    // Assuming there is a position created already
     expect(
-      (await minterContract.getConversionRate()).toNumber()
-    ).to.be.greaterThan(
-      0,
-      'No position is created to calculate conversion rate'
-    )
+      BigNumber.from(await minterContract.getGCR()).gt(BigNumber.from(0)),
+      'No position is created to compute GCR'
+    ).to.be.true
   })
 
   it('Can whitelist a collateral address', async () => {

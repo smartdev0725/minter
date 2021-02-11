@@ -9,6 +9,7 @@ import {
   MintEvent,
   WithdrawnCollateralEvent
 } from '../types/types'
+import { formatEther } from 'ethers/lib/utils'
 
 export const checkDepositEvent = async (
   contract: Contract,
@@ -50,10 +51,12 @@ export const checkDepositEvent = async (
   })
 
   const eventMint = await mintEvent
+  console.log('Tokens minted: ', formatEther(eventMint.value))
   expect(eventMint.user).to.be.equal(sender)
   expect(eventMint.value).to.be.equal(tokensMinted)
 
   const eventDeposit = await depositEvent
+  console.log('Collateral deposited: ', formatEther(eventDeposit.collateral))
   expect(eventDeposit.user).to.be.equal(sender)
   expect(eventDeposit.collateral).to.be.equal(collateralValueDeposit)
   expect(eventDeposit.collateralAddress).to.be.equal(address)
@@ -68,7 +71,7 @@ export const checkWithdrawalEvent = async (
   sender: string,
   address: string,
   collateralValue: BigNumber,
-  collateralToRedeem: BigNumber
+  tokenToBurn: BigNumber
 ): Promise<boolean> => {
   let withdrawalEvent = new Promise<WithdrawnCollateralEvent>(
     (resolve, reject) => {
@@ -103,10 +106,12 @@ export const checkWithdrawalEvent = async (
   })
 
   const eventBurn = await burnEvent
+  console.log('Tokens burned: ', formatEther(eventBurn.value))
   expect(eventBurn.user).to.be.equal(sender)
-  expect(eventBurn.value).to.be.equal(collateralToRedeem)
+  expect(eventBurn.value).to.be.equal(tokenToBurn)
 
   const eventWithdrawal = await withdrawalEvent
+  console.log('Collateral: ', formatEther(eventWithdrawal.collateral))
   expect(eventWithdrawal.user).to.be.equal(sender)
   expect(eventWithdrawal.collateral).to.be.equal(collateralValue)
   expect(eventWithdrawal.collateralAddress).to.be.equal(address)

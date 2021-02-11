@@ -95,6 +95,7 @@ const Deposit = ({
       // 1- deposit collateral
       const tx = await minterContract.depositByCollateralAddress(
         (daiDeposit * ContractHelper.DECIMALPADDING).toFixed(0),
+        (phmToBeMinted * ContractHelper.DECIMALPADDING).toFixed(0),
         contractAddressObject.DAI
       )
 
@@ -161,7 +162,6 @@ const Deposit = ({
                 type="number"
                 value={phmToBeMinted.toFixed(2)}
                 fullWidth
-                disabled
               />
             </Grid>
           </Grid>

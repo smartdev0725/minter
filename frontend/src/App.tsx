@@ -151,9 +151,9 @@ const App = () => {
     if (!minterContract || !daiContract) return
 
     const getConversionRate = async () => {
-      const rate = await minterContract.getConversionRate(daiContract.address)
-      //console.log('Conversion rate:', rate.toNumber())
-      setConversionRate(bigNumberToFloat(rate))
+      const rate = await minterContract.getGCR()
+      console.log('Conversion rate:', rate.toNumber())
+      setConversionRate(rate.toNumber())
     }
 
     getConversionRate()

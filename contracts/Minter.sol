@@ -93,6 +93,7 @@ contract Minter is Lockable {
 
   function depositByCollateralAddress(
     uint256 _collateralAmount,
+    uint256 _numTokens,
     address _collateralAddress
   ) public isInitialized() nonReentrant() {
     // Check if collateral amount is greater than 0
@@ -112,7 +113,8 @@ contract Minter is Lockable {
     FixedPoint.Unsigned memory collateral =
       FixedPoint.fromUnscaledUint(_collateralAmount).divCeil(decimalPadding);
 
-    FixedPoint.Unsigned memory tokens = _tokensToMint(collateral);
+    FixedPoint.Unsigned memory tokens =
+      FixedPoint.fromUnscaledUint(_numTokens).divCeil(decimalPadding);
 
     // Check if user has enough balance
     require(
@@ -174,14 +176,10 @@ contract Minter is Lockable {
     );
 
     // Redeem collateral and burn synthetic token
-    emp.redeem(tokenAmount);
+    FixedPoint.Unsigned memory redeemedCollateral = emp.redeem(tokenAmount);
 
     // Burn event
     emit Burn(msg.sender, tokenAmount.rawValue);
-
-    // Convert tokens to collateral equivalent TODO: Check how this works with the price identifier
-    FixedPoint.Unsigned memory redeemedCollateral =
-      _collateralToReceive(tokenAmount);
 
     // Transfer withdrawn collateral to user
     collateralToken.transfer(msg.sender, redeemedCollateral.rawValue);
@@ -259,11 +257,15 @@ contract Minter is Lockable {
     return _getGCRValue().rawValue;
   }
 
-  /**
-   * Helper in converting tokens and collateral
-   */
-  function getConversionRate() public view returns (uint256) {
-    return _getGCRValue().rawValue + 1;
+  function getUBEGCR() public view returns (uint256) {
+    FixedPoint.Unsigned memory totalPositionCollateral =
+      FixedPoint.fromUnscaledUint(229073333333333333400);
+    FixedPoint.Unsigned memory totalTokensOutstanding =
+      FixedPoint.fromUnscaledUint(5799830000000000000000);
+    FixedPoint.Unsigned memory gcrValue =
+      totalPositionCollateral.div(totalTokensOutstanding);
+
+    return gcrValue.rawValue;
   }
 
   /**
@@ -378,19 +380,5 @@ contract Minter is Lockable {
       emp.totalPositionCollateral().div(emp.totalTokensOutstanding());
 
     return gcrValue;
-  }
-
-  function _tokensToMint(FixedPoint.Unsigned memory _collateralAmount)
-    internal
-    returns (FixedPoint.Unsigned memory)
-  {
-    return _collateralAmount.div(getConversionRate());
-  }
-
-  function _collateralToReceive(FixedPoint.Unsigned memory _numTokens)
-    internal
-    returns (FixedPoint.Unsigned memory)
-  {
-    return _numTokens.mul(getConversionRate());
   }
 }
