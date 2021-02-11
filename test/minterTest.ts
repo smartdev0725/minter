@@ -365,10 +365,7 @@ describe('Can call view functions from the contract', () => {
 
   it('Can get the current conversion rate for the given collateral', async () => {
     console.log('GCR: ', (await minterContract.getGCR()).toString())
-    console.log(
-      'UBE GCR: ',
-      formatEther(BigNumber.from(await minterContract.getUBEGCR()))
-    )
+
     expect(
       BigNumber.from(await minterContract.getGCR()).gt(BigNumber.from(0)),
       'No position is created to compute GCR'

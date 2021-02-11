@@ -259,17 +259,6 @@ contract Minter is Lockable {
     return _getGCRValue().rawValue;
   }
 
-  function getUBEGCR() public view returns (uint256) {
-    FixedPoint.Unsigned memory totalPositionCollateral =
-      FixedPoint.fromUnscaledUint(229073333333333333400);
-    FixedPoint.Unsigned memory totalTokensOutstanding =
-      FixedPoint.fromUnscaledUint(5799830000000000000000);
-    FixedPoint.Unsigned memory gcrValue =
-      totalPositionCollateral.div(totalTokensOutstanding);
-
-    return gcrValue.rawValue;
-  }
-
   /**
    * Returns the financial contract address (EMP/Perpetual)
    */
