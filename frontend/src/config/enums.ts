@@ -16,13 +16,13 @@ export enum Networks {
 }
 
 export enum NetworkNames {
-  MAINNET = 'Mainnet',
-  KOVAN = 'Kovan',
-  ROPSTEN = 'Ropsten',
-  RINKEBY = 'Rinkeby',
-  GOERLI = 'Goerli',
-  LOCAL = 'localhost:9545',
-  UNKNOWN = 'Unknown Network'
+  MAINNET = 'MAINNET',
+  KOVAN = 'KOVAN',
+  ROPSTEN = 'ROPSTEN',
+  RINKEBY = 'RINKEBY',
+  GOERLI = 'GOERLI',
+  LOCAL = 'LOCALHOST:9545',
+  UNKNOWN = 'UNKNOWN NETWORK'
 }
 
 export enum Tokens {

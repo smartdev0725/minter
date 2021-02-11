@@ -2,6 +2,11 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Don't forget to create your environment file in the root folder
+
+1. Create a new file `.env`
+2. add a value `REACT_APP_CHAIN_NETWORK=LOCALHOST:9545` or replace the value on the right hand side with `KOVAN`, `MAINNET`, `ROPSTEN`, `RINKEBY`, `GOERLI` as possible network options to point to
+
 ## Available Scripts
 
 In the project directory, you can run:
