@@ -94,7 +94,7 @@ const Deposit = ({
 
       // 1- deposit collateral
       const tx = await minterContract.depositByCollateralAddress(
-        (daiDeposit * ContractHelper.DECIMALPADDING).toFixed(0),
+        1000,
         contractAddressObject.DAI
       )
 

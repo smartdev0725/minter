@@ -1,7 +1,6 @@
 import { artifacts, ethers } from 'hardhat'
 import * as fs from 'fs'
 import * as fse from 'fs-extra'
-import { formatEther } from 'ethers/lib/utils'
 import { TokenFactory } from '../typechain/TokenFactory'
 import { Contract, providers } from 'ethers'
 import { formatEther, parseEther } from 'ethers/lib/utils'
@@ -17,14 +16,14 @@ const main = async () => {
 
   //const perpetualContractAddress = '0x67e8B6C4C72Be2A56F858279919B7cBC4BfF3084'
   // KOVAN ADDRESSES
-  const empContractAddress = '0xA1dF1Eb9bEB2f91444E2880E2B204096057b281d'
-  const collateralAddressUMA = '0x4f96fe3b7a6cf9725f59d353f723c1bdb64ca6aa'
-  const phmAddressUma = '0x0e47a28e4f16db3a2583ab4195a7ba49a3e9cfe6'
+  // const empContractAddress = '0xA1dF1Eb9bEB2f91444E2880E2B204096057b281d'
+  // const collateralAddressUMA = '0x4f96fe3b7a6cf9725f59d353f723c1bdb64ca6aa'
+  // const phmAddressUma = '0x0e47a28e4f16db3a2583ab4195a7ba49a3e9cfe6'
 
   // LOCAL ADDRESSES
-  // const empContractAddress = '0xe93194815959Fb5879daC1283b912AD78c3D13c3'
-  // const collateralAddressUMA = '0x25AF99b922857C37282f578F428CB7f34335B379'
-  // const phmAddressUma = '0x55aec27A24933F075c6b178fb0DDD5346104E6f1'
+  const empContractAddress = '0xe93194815959Fb5879daC1283b912AD78c3D13c3'
+  const collateralAddressUMA = '0x25AF99b922857C37282f578F428CB7f34335B379'
+  const phmAddressUma = '0x55aec27A24933F075c6b178fb0DDD5346104E6f1'
 
   // Deploy Minter contract
   const minterFactory = await ethers.getContractFactory('Minter')
