@@ -17,9 +17,8 @@ import SwapVertIcon from '@material-ui/icons/SwapVert'
 import { ExpandedIERC20, Minter, Perpetual } from '../typechain'
 import contractAddressObject from '../contracts/contract-address.json'
 import { ChainError, ContractHelper } from '../config/enums'
-import { parseEther, parseUnits } from 'ethers/lib/utils'
+import { parseEther } from 'ethers/lib/utils'
 import { formatBalance } from '../utils/StringUtils'
-import { BigNumber } from 'ethers'
 
 const useStyles = makeStyles({
   insufficientBalance: {
