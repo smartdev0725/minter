@@ -81,7 +81,7 @@ const intialCollateral = parseEther('100000')
 const expectedUserCollateralLeft = BigNumber.from(parseEther('1440'))
 const expectedUserUBELeft = BigNumber.from(parseEther('720'))
 
-// Value to be set after getting getConversionRate()
+// Value to be set after getting getGCR()
 let expectedUBE, expectedConvertedCollateral
 
 // single run per test setup
@@ -198,10 +198,7 @@ describe('Can accept collateral and mint synthetic', async () => {
 
   it('sending collateral ERC20 to deposit func should mint UBE, return UBE to msg.sender', async () => {
     expectedUBE = parseEther(
-      `${
-        collateralRawValue /
-        (await minterContract.getConversionRate()).toNumber()
-      }`
+      `${collateralRawValue / (await minterContract.getGCR()).toNumber()}`
     )
 
     await daiContract.approve(minterContract.address, collateralDeposit)
@@ -260,8 +257,7 @@ describe('Can redeem synth for original ERC20 collateral', async () => {
   it('sending synth and calling redeem func should burn synth, return ERC20 collateral to msg.sender', async () => {
     expectedConvertedCollateral = parseEther(
       `${
-        collateralToRedeemRawValue *
-        (await minterContract.getConversionRate()).toNumber()
+        collateralToRedeemRawValue * (await minterContract.getGCR()).toNumber()
       }`
     )
     await ubeContract.approve(minterContract.address, collateralToRedeem)
@@ -379,15 +375,15 @@ describe('Can call view functions from the contract', () => {
     )
   })
 
-  it('Can get the current conversion rate for the given collateral', async () => {
-    // Assuming there is a position created already
-    expect(
-      (await minterContract.getConversionRate()).toNumber()
-    ).to.be.greaterThan(
-      0,
-      'No position is created to calculate conversion rate'
-    )
-  })
+  // it('Can get the current conversion rate for the given collateral', async () => {
+  //   // Assuming there is a position created already
+  //   expect(
+  //     (await minterContract.getGCR()).toNumber()
+  //   ).to.be.greaterThan(
+  //     0,
+  //     'No position is created to calculate conversion rate'
+  //   )
+  // })
 
   it('Can whitelist a collateral address', async () => {
     await minterContract.addCollateralAddress(dumContract.address)

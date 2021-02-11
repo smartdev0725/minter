@@ -55,7 +55,8 @@ contract Minter is Lockable {
   event Mint(address indexed user, uint256 value);
   event Burn(address indexed user, uint256 value);
   event ChangedFinancialContractAddress(
-    address indexed newFinancialContractAddress
+    address indexed newFinancialContractAddress,
+    address indexed oldFinancialContractAddress
   );
 
   /****************************************
@@ -260,13 +261,6 @@ contract Minter is Lockable {
   }
 
   /**
-   * Helper in converting tokens and collateral
-   */
-  function getConversionRate() public view returns (uint256) {
-    return _getGCRValue().rawValue + 1;
-  }
-
-  /**
    * Returns the financial contract address (EMP/Perpetual)
    */
   function getFinancialContractAddress() public view returns (address) {
@@ -281,8 +275,9 @@ contract Minter is Lockable {
     nonReentrant()
     isAdmin()
   {
+    address oldContractAddress = _financialContractAddress;
     _financialContractAddress = contractAddress;
-    emit ChangedFinancialContractAddress(contractAddress);
+    emit ChangedFinancialContractAddress(contractAddress, oldContractAddress);
   }
 
   /**
@@ -384,13 +379,13 @@ contract Minter is Lockable {
     internal
     returns (FixedPoint.Unsigned memory)
   {
-    return _collateralAmount.div(getConversionRate());
+    return _collateralAmount.div(_getGCRValue().rawValue);
   }
 
   function _collateralToReceive(FixedPoint.Unsigned memory _numTokens)
     internal
     returns (FixedPoint.Unsigned memory)
   {
-    return _numTokens.mul(getConversionRate());
+    return _numTokens.mul(_getGCRValue().rawValue);
   }
 }
