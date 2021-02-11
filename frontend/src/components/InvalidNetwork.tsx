@@ -9,11 +9,16 @@ import {
 import { NetworkNames } from '../config/enums'
 
 interface InvalidNetworkProps {
+  targetNetwork: NetworkNames
   isOpen: boolean
   onClose: () => void
 }
 
-const InvalidNetwork = ({ isOpen, onClose }: InvalidNetworkProps) => {
+const InvalidNetwork = ({
+  targetNetwork,
+  isOpen,
+  onClose
+}: InvalidNetworkProps) => {
   return (
     <Dialog
       open={isOpen}
@@ -25,8 +30,7 @@ const InvalidNetwork = ({ isOpen, onClose }: InvalidNetworkProps) => {
       <DialogContent>
         <DialogContentText>
           <Typography>
-            To proceed, please switch your wallet's network to{' '}
-            {NetworkNames.LOCAL}
+            To proceed, please switch your wallet's network to {targetNetwork}
           </Typography>
         </DialogContentText>
       </DialogContent>

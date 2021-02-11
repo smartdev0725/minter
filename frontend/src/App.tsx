@@ -16,7 +16,7 @@ import { NetworkNames } from './config/enums'
 import Deposit from './components/Deposit'
 import NotConnected from './components/NotConnected'
 import contractAddressObject from './contracts/contract-address.json'
-import PHMArtifact from './contracts/PHM.json'
+import UBEArtifact from './contracts/UBE.json'
 import DAIArtifact from './contracts/DAI.json'
 import PerpetualArtifact from './contracts/Perpetual.json'
 import MinterArtifact from './contracts/Minter.json'
@@ -29,6 +29,8 @@ import { Alert } from '@material-ui/lab'
 import { useSnackbar } from 'notistack'
 import { Balances } from './config/types'
 import Redeem from './components/Redeem'
+
+console.log('contractAddressObject:', contractAddressObject)
 
 declare global {
   interface Window {
@@ -55,6 +57,13 @@ const web3Modal = new Web3Modal({
   }
 })
 
+// Get target network from `CHAIN_NETWORK` env variable
+// The env variable needs to be defined in .env file locally or from command line
+const targetNetwork = process.env.REACT_APP_CHAIN_NETWORK
+  ? (process.env.REACT_APP_CHAIN_NETWORK as NetworkNames)
+  : NetworkNames.LOCAL
+console.log('targetNetwork:', targetNetwork)
+
 const App = () => {
   const [injectedProvider, setInjectedProvider] = useState<Web3Provider>()
   const [network, setNetwork] = useState(
@@ -63,7 +72,7 @@ const App = () => {
       : NetworkNames.UNKNOWN
   )
   const [userAddress, setUserAddress] = useState<string>()
-  const [balances, setBalances] = useState<Balances>({ ETH: 0, DAI: 0, PHM: 0 })
+  const [balances, setBalances] = useState<Balances>({ DAI: 0, UBE: 0 })
   const [conversionRate, setConversionRate] = useState(0)
   const [showDepositModal, setShowDepositModal] = useState(false)
   const [showRedeemModal, setShowRedeemModal] = useState(false)
@@ -96,21 +105,21 @@ const App = () => {
       console.log('user address:', address)
       setUserAddress(address)
 
-      const bal = await injectedProvider.getBalance(address)
-      console.log('ETH balance:', bal)
-      setBalances({ ...balances, ETH: bigNumberToFloat(bal) })
+      // const bal = await injectedProvider.getBalance(address)
+      // console.log('ETH balance:', bal)
+      // setBalances({ ...balances, ETH: bigNumberToFloat(bal) })
     }
 
     const initContracts = () => {
       // Early return if connected to other network
-      if (network !== NetworkNames.LOCAL) return
+      if (network !== targetNetwork) return
 
       setShowInvalidNetworkModal(false)
 
-      // Get PHM contract from the chain
+      // Get UBE contract from the chain
       const pContract = new ethers.Contract(
-        contractAddressObject.PHM,
-        PHMArtifact.abi,
+        contractAddressObject.UBE,
+        UBEArtifact.abi,
         injectedProvider.getSigner()
       ) as ExpandedIERC20
       setPhmContract(pContract)
@@ -141,18 +150,18 @@ const App = () => {
     }
 
     getUserAddressAndBalance().then(initContracts)
-  }, [injectedProvider])
+  }, [injectedProvider]) //eslint-disable-line
 
   useEffect(() => {
     refreshBalances()
-  }, [phmContract, daiContract])
+  }, [phmContract, daiContract]) //eslint-disable-line
 
   useEffect(() => {
     if (!minterContract || !daiContract) return
 
     const getConversionRate = async () => {
-      const rate = await minterContract.getConversionRate(daiContract.address)
-      //console.log('Conversion rate:', rate.toNumber())
+      const rate = await minterContract.getGCR()
+      console.log('Conversion rate/GCR:', rate)
       setConversionRate(bigNumberToFloat(rate))
     }
 
@@ -184,7 +193,7 @@ const App = () => {
 
     setInjectedProvider(undefined)
     setUserAddress(undefined)
-    setBalances({ ETH: 0, PHM: 0, DAI: 0 })
+    setBalances({ UBE: 0, DAI: 0 })
   }
 
   const watch = (provider: any) => {
@@ -207,7 +216,7 @@ const App = () => {
   }
 
   const refreshBalances = async () => {
-    let phmBalance = balances.PHM
+    let phmBalance = balances.UBE
     let daiBalance = balances.DAI
 
     if (phmContract) {
@@ -218,7 +227,7 @@ const App = () => {
 
         if (userAddress) {
           const bal = await phmContract.balanceOf(userAddress)
-          console.log('PHM balance:', bal)
+          console.log('UBE balance:', bal)
           phmBalance = bigNumberToFloat(bal)
         }
       } catch (err) {
@@ -232,7 +241,7 @@ const App = () => {
       daiBalance = bigNumberToFloat(bal)
     }
 
-    setBalances({ ...balances, PHM: phmBalance, DAI: daiBalance })
+    setBalances({ ...balances, UBE: phmBalance, DAI: daiBalance })
   }
 
   return (
@@ -246,7 +255,7 @@ const App = () => {
         collateralContract={daiContract}
         perpetualContract={perpetualContract}
         onDepositSuccessful={() => {
-          enqueueSnackbar('PHM successfully minted!', { variant: 'success' })
+          enqueueSnackbar('UBE successfully minted!', { variant: 'success' })
           refreshBalances()
           setShowDepositModal(false)
         }}
@@ -260,7 +269,7 @@ const App = () => {
       <Redeem
         isOpen={showRedeemModal}
         onClose={() => setShowRedeemModal(false)}
-        phmBalance={balances['PHM']}
+        ubeBalance={balances['UBE']}
         conversionRate={conversionRate}
         minterContract={minterContract}
         phmContract={phmContract}
@@ -284,6 +293,7 @@ const App = () => {
       />
 
       <InvalidNetwork
+        targetNetwork={targetNetwork}
         isOpen={showInvalidNetworkModal}
         onClose={() => setShowInvalidNetworkModal(false)}
       />
@@ -291,7 +301,7 @@ const App = () => {
       <Container maxWidth="sm">
         <Box py={3}>
           <Typography variant="h4" style={{ color: 'white' }}>
-            HaloDAO Minter Demo
+            HaloDAO Minter
           </Typography>
 
           <Box my={3}>
@@ -299,11 +309,11 @@ const App = () => {
               <Box p={2}>
                 <Typography variant="caption">CURRENT NETWORK</Typography>
                 <Typography>{network}</Typography>
-                {injectedProvider && network !== NetworkNames.LOCAL && (
+                {injectedProvider && network !== targetNetwork && (
                   <Box mt={1}>
                     <Alert severity="error">
-                      To use our PHM minter, you need to be on the{' '}
-                      {NetworkNames.LOCAL} network.
+                      To use our UBE minter, you need to be on the{' '}
+                      {targetNetwork} network.
                     </Alert>
                   </Box>
                 )}
@@ -350,7 +360,7 @@ const App = () => {
               <Box p={2}>
                 <Typography variant="caption">MINTER</Typography>
                 <Box mt={2} textAlign="center">
-                  <Typography variant="subtitle2">Total PHM supply</Typography>
+                  <Typography variant="subtitle2">Total UBE supply</Typography>
                   <Typography variant="h2">
                     {formatBalance(phmTotalSupply)}
                   </Typography>
@@ -363,7 +373,7 @@ const App = () => {
                         color="primary"
                         onClick={() => {
                           if (injectedProvider) {
-                            if (network === NetworkNames.LOCAL) {
+                            if (network === targetNetwork) {
                               setShowDepositModal(true)
                             } else {
                               setShowInvalidNetworkModal(true)
@@ -382,7 +392,7 @@ const App = () => {
                         variant="contained"
                         onClick={() => {
                           if (injectedProvider) {
-                            if (network === NetworkNames.LOCAL) {
+                            if (network === targetNetwork) {
                               setShowRedeemModal(true)
                             } else {
                               setShowInvalidNetworkModal(true)
@@ -401,7 +411,7 @@ const App = () => {
                   {userAddress && (
                     <Box mt={1}>
                       <Typography variant="caption">
-                        1 DAI = {conversionRate?.toFixed(2)} PHM
+                        1 DAI = {conversionRate.toFixed(2)} UBE
                       </Typography>
                     </Box>
                   )}

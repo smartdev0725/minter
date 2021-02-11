@@ -1,6 +1,7 @@
 import { artifacts, ethers } from 'hardhat'
 import * as fs from 'fs'
 import * as fse from 'fs-extra'
+import { formatEther } from 'ethers/lib/utils'
 import { TokenFactory } from '../typechain/TokenFactory'
 import { Contract, providers } from 'ethers'
 import { formatEther, parseEther } from 'ethers/lib/utils'
@@ -44,6 +45,7 @@ const main = async () => {
     empContractAddress
   )
   minterContract = await minterContract.deployed()
+  console.log('minterContract created at address: ', minterContract.address)
 
   // Initialize minter & add DAI collateral
   await minterContract.initialize()
@@ -104,7 +106,7 @@ const saveFrontendFiles = (
 
   const IERC20Artifact = artifacts.readArtifactSync('ExpandedIERC20')
   fs.writeFileSync(
-    contractsDir + '/PHM.json',
+    contractsDir + '/UBE.json',
     JSON.stringify(IERC20Artifact, null, 2)
   )
 
@@ -122,6 +124,8 @@ const saveFrontendFiles = (
 
   // Copy typechain to /frontend/src/typechain directory
   fse.copySync(typechainSrcDir, typechainDestDir)
+
+  console.log('Deploy script finished successfully!')
 }
 
 main()

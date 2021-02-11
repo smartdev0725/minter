@@ -36,7 +36,7 @@ const useStyles = makeStyles({
 interface RedeemProps {
   isOpen: boolean
   onClose: () => void
-  phmBalance: number
+  ubeBalance: number
   conversionRate: number
   minterContract?: Minter
   phmContract?: ExpandedIERC20
@@ -47,7 +47,7 @@ interface RedeemProps {
 const Redeem = ({
   isOpen,
   onClose,
-  phmBalance,
+  ubeBalance,
   conversionRate,
   minterContract,
   phmContract,
@@ -64,18 +64,18 @@ const Redeem = ({
   useEffect(() => {
     setDaiToBeRedeemed(withdrawAmount * conversionRate)
 
-    if (withdrawAmount > 0 && withdrawAmount <= phmBalance) {
+    if (withdrawAmount > 0 && withdrawAmount <= ubeBalance) {
       setCanWithdraw(true)
     } else {
       setCanWithdraw(false)
     }
 
-    if (withdrawAmount > phmBalance) {
+    if (withdrawAmount > ubeBalance) {
       setInsufficientBalance(true)
     } else {
       setInsufficientBalance(false)
     }
-  }, [withdrawAmount, conversionRate, phmBalance])
+  }, [withdrawAmount, conversionRate, ubeBalance])
 
   const redeem = async () => {
     if (!minterContract || !phmContract) return onClose()
@@ -118,8 +118,8 @@ const Redeem = ({
       <DialogTitle id="dialog-title">Redeem DAI</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          To redeem DAI, please specify amount of PHM to be withdrawn. We show a
-          preview of how much DAI can be redeemed for your PHM.
+          To redeem DAI, please specify amount of UBE to be withdrawn. We show a
+          preview of how much DAI can be redeemed for your UBE.
         </DialogContentText>
         <Box mx={6} textAlign="center">
           <Grid container spacing={2} justify="center" alignItems="center">
@@ -130,8 +130,8 @@ const Redeem = ({
               <TextField
                 autoFocus
                 margin="dense"
-                id="phm"
-                label="PHM"
+                id="ube"
+                label="UBE"
                 type="number"
                 fullWidth
                 value={withdrawAmount}
@@ -147,7 +147,7 @@ const Redeem = ({
               />
               <Box textAlign="right">
                 <Typography variant="caption">
-                  Balance: {formatBalance(phmBalance)} PHM
+                  Balance: {formatBalance(ubeBalance)} UBE
                 </Typography>
               </Box>
               <TextField

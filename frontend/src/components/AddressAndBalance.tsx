@@ -10,7 +10,7 @@ import {
 import { formatBalance, shortenAddress } from '../utils/StringUtils'
 import ETHIcon from '../assets/eth.svg'
 import DAIIcon from '../assets/dai.svg'
-import PHMIcon from '../assets/phm.svg'
+import UBEIcon from '../assets/phm.svg'
 import DisconnectIcon from '@material-ui/icons/ExitToApp'
 import { Tokens } from '../config/enums'
 import { Balances } from '../config/types'
@@ -48,13 +48,7 @@ const AddressAndBalance = ({
                 <tr key={token}>
                   <td width={50}>
                     <img
-                      src={
-                        token === Tokens.ETH
-                          ? ETHIcon
-                          : token === Tokens.DAI
-                          ? DAIIcon
-                          : PHMIcon
-                      }
+                      src={token === Tokens.DAI ? DAIIcon : UBEIcon}
                       alt={token}
                     />
                   </td>
@@ -62,12 +56,7 @@ const AddressAndBalance = ({
                     <Typography>{token}</Typography>
                   </td>
                   <td align="right">
-                    <Typography>
-                      {formatBalance(
-                        balances[token],
-                        token === Tokens.ETH ? 6 : 2
-                      )}
-                    </Typography>
+                    <Typography>{formatBalance(balances[token], 2)}</Typography>
                   </td>
                 </tr>
               )
