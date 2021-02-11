@@ -65,7 +65,7 @@ const Deposit = ({
   const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
-    setPhmToBeMinted(daiDeposit / conversionRate)
+    //setPhmToBeMinted(daiDeposit / conversionRate)
 
     if (daiDeposit > 0 && daiDeposit <= daiBalance) {
       setCanDeposit(true)
@@ -160,7 +160,10 @@ const Deposit = ({
                 id="ube"
                 label="UBE"
                 type="number"
-                value={phmToBeMinted.toFixed(2)}
+                value={phmToBeMinted}
+                onChange={(e) => {
+                  setPhmToBeMinted(parseFloat(e.currentTarget.value))
+                }}
                 fullWidth
               />
             </Grid>
