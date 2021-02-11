@@ -13,7 +13,7 @@
 # Metamask
 
 1. Be sure to have metamask plugin installed in your browser (recommended browser is Chrome)
-2. Login to Metamask and point the network to localhost and port 8545 before starting the frontend app
+2. Login to Metamask and point the network to localhost and port 9545 before starting the frontend app
 
 ## Quickstart: Running local
 
@@ -85,7 +85,6 @@
 #### Resources
 
 [HardHat Documentation](https://hardhat.org/getting-started/) - Hardhat tutorials, config, network, and plugin references
-[scaffold-eth speeeeedrun](https://www.youtube.com/watch?v=eUAc2FtC0_s) - Similar workflow we can use in working with this boilerplate. Our boilerplate seemed to be an improved typescript version of this stack.
 
 ## Troubleshooting
 
