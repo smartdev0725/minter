@@ -32,9 +32,8 @@ let accounts,
   collateralAddress: string,
   nonCollateralAddress: string,
   expandedERC20LabelString: string = 'ExpandedERC20',
-  tokenFactoryLabelString: string = 'TokenFactory',
   // name not as impt, since does not have an artifact to reference since auto deployed by TokenFactory
-  phmContractLabelString: string = 'PHMContract',
+  ubeContractLabelString: string = 'SyntheticToken',
   minterContractLabelString: string = 'Minter',
   empContractLabelString: string = 'ExpiringMultiParty'
 
@@ -42,11 +41,9 @@ let accounts,
 let contractCreatorAccount: SignerWithAddress
 
 // Constants
-// const priceFeedIdentifier = utf8ToHex('ETH/USD') // need this for UMA minting
 
 // Contract variables that store deployed Contracts
-let tokenFactoryContract: Contract,
-  phmContract: Contract,
+let ubeContract: Contract,
   minterContract: Contract,
   daiContract: Contract,
   dumContract: Contract,
@@ -78,10 +75,14 @@ const collateralToRedeemNumber = BigNumber.from(
 ) // padded with 2 extra zeroes
 const empContractAddress = '0xe93194815959Fb5879daC1283b912AD78c3D13c3'
 const collateralAddressUMA = '0x25AF99b922857C37282f578F428CB7f34335B379'
-const phmAddressUma = '0x55aec27A24933F075c6b178fb0DDD5346104E6f1'
+const ubeAddressUma = '0x55aec27A24933F075c6b178fb0DDD5346104E6f1'
 const intialCollateral = parseEther('100000')
 
-let expectedPHM, expectedConvertedCollateral
+const expectedUserCollateralLeft = BigNumber.from(parseEther('1440'))
+const expectedUserUBELeft = BigNumber.from(parseEther('720'))
+
+// Value to be set after getting getConversionRate()
+let expectedUBE, expectedConvertedCollateral
 
 // single run per test setup
 before(async () => {
@@ -92,7 +93,7 @@ before(async () => {
   otherUserAddress = accounts[2]
 })
 
-describe('should set up and connect to the ganache node properly', async () => {
+describe('should delpoy and get references of needed contracts from the blockchain', async () => {
   // create the collateral token (this should be the existing DAI contract not created by us)
   it('Can deploy and get ref to DAI Contract', async () => {
     // deploy Contract with 'expect' assurances
@@ -121,7 +122,7 @@ describe('should set up and connect to the ganache node properly', async () => {
     ).to.be.true
   })
 
-  it('Get reference to the EMP contract', async () => {
+  it('Get refto the EMP contract', async () => {
     const empContractReference = await ethers.getContractAt(
       empContractLabelString,
       empContractAddress
@@ -133,15 +134,15 @@ describe('should set up and connect to the ganache node properly', async () => {
       .true
   })
 
-  it('Get reference to the PHM contract', async () => {
-    const phmContractReference = await ethers.getContractAt(
+  it('Get ref to the UBE contract', async () => {
+    const ubeContractReference = await ethers.getContractAt(
       expandedERC20LabelString,
-      phmAddressUma
+      ubeAddressUma
     )
 
-    phmContract = await phmContractReference.deployed()
+    ubeContract = await ubeContractReference.deployed()
 
-    expect(await isValidContract(phmContract, empContractLabelString)).to.be
+    expect(await isValidContract(ubeContract, ubeContractLabelString)).to.be
       .true
   })
 
@@ -149,7 +150,7 @@ describe('should set up and connect to the ganache node properly', async () => {
     const Minter = await ethers.getContractFactory(minterContractLabelString)
 
     const minterContractDeploy = await Minter.deploy(
-      phmAddressUma,
+      ubeAddressUma,
       empContractAddress
     )
 
@@ -195,8 +196,8 @@ describe('should set up and connect to the ganache node properly', async () => {
 describe('Can accept collateral and mint synthetic', async () => {
   beforeEach(async () => {})
 
-  it('sending collateral ERC20 to deposit func should mint PHM, return PHM to msg.sender', async () => {
-    expectedPHM = parseEther(
+  it('sending collateral ERC20 to deposit func should mint UBE, return UBE to msg.sender', async () => {
+    expectedUBE = parseEther(
       `${
         collateralRawValue /
         (await minterContract.getConversionRate()).toNumber()
@@ -212,32 +213,18 @@ describe('Can accept collateral and mint synthetic', async () => {
 
     await depositTxn.wait()
 
-    console.log(
-      'Deposit  - PHM: ',
-      formatEther(
-        await phmContract.balanceOf(contractCreatorAccount.address)
-      ).toString()
-    )
-
-    console.log(
-      'Deposit - Collateral Balance ',
-      formatEther(
-        await daiContract.balanceOf(contractCreatorAccount.address)
-      ).toString()
-    )
-
     expect(
       await checkDepositEvent(
         minterContract,
         contractCreatorAccount.address,
         collateralAddressUMA,
         collateralDeposit,
-        expectedPHM
+        expectedUBE
       )
     ).to.be.true
   })
 
-  it('sending non collateral ERC20 to deposit func should not mint PHM, not return PHM to msg.sender and return error', async () => {
+  it('sending non collateral ERC20 to deposit func should not mint UBE, not return UBE to msg.sender and return error', async () => {
     // check that noncollateral contract is not whitelsited in the contract
     expect(await minterContract.isWhitelisted(nonCollateralAddress)).to.be.false
 
@@ -254,7 +241,7 @@ describe('Can accept collateral and mint synthetic', async () => {
     }
   })
 
-  it('deposit func should not mint PHM when msg.sender do not  have enough collateral balance and return error', async () => {
+  it('deposit func should not mint UBE when msg.sender do not  have enough collateral balance and return error', async () => {
     try {
       await minterContract.depositByCollateralAddress(
         parseEther('1230912309123091230192'),
@@ -269,17 +256,6 @@ describe('Can accept collateral and mint synthetic', async () => {
   })
 })
 
-// it('sending invalid collateral amount to deposit func should not mint PHM, not return PHM to msg.sender and return error', async () => {
-//   try {
-//     await minterContract.depositByCollateralAddress(0, nonCollateralAddress)
-//     assert(false, 'Error is not thrown')
-//   } catch (err) {
-//     expect(err.message).to.be.equal(
-//       'VM Exception while processing transaction: revert Invalid collateral amount.'
-//     )
-//   }
-// })
-
 describe('Can redeem synth for original ERC20 collateral', async () => {
   it('sending synth and calling redeem func should burn synth, return ERC20 collateral to msg.sender', async () => {
     expectedConvertedCollateral = parseEther(
@@ -288,7 +264,7 @@ describe('Can redeem synth for original ERC20 collateral', async () => {
         (await minterContract.getConversionRate()).toNumber()
       }`
     )
-    await phmContract.approve(minterContract.address, collateralToRedeem)
+    await ubeContract.approve(minterContract.address, collateralToRedeem)
 
     const redeemTxn = await minterContract.redeemByCollateralAddress(
       collateralToRedeemNumber,
@@ -296,20 +272,6 @@ describe('Can redeem synth for original ERC20 collateral', async () => {
     )
 
     await redeemTxn.wait()
-
-    console.log(
-      'Redeem - PHM: ',
-      formatEther(
-        await phmContract.balanceOf(contractCreatorAccount.address)
-      ).toString()
-    )
-
-    console.log(
-      'Redeem - Collateral Balance ',
-      formatEther(
-        await daiContract.balanceOf(contractCreatorAccount.address)
-      ).toString()
-    )
 
     expect(
       await checkWithdrawalEvent(
@@ -345,6 +307,32 @@ describe('Can earn HALO upon synth mint', () => {})
 describe('Can earn HALO on transfer to whitelisted AMM address', () => {})
 
 describe('Can call view functions from the contract', () => {
+  it('Get total collateral deposited to the financial contract of a collateral', async () => {
+    expect(
+      (
+        await minterContract.getTotalCollateralByCollateralAddress(
+          collateralAddressUMA
+        )
+      ).gte(expectedUserCollateralLeft)
+    ).to.be.true
+  })
+
+  it('Get user total collateral deposited to the financial contract of a collateral', async () => {
+    expect(
+      await minterContract.getUserCollateralByCollateralAddress(
+        collateralAddressUMA
+      )
+    ).to.equal(expectedUserCollateralLeft)
+  })
+
+  it('Get user total minted tokens', async () => {
+    expect(
+      await minterContract.getUserTotalMintedTokensByCollateralAddress(
+        collateralAddressUMA
+      )
+    ).to.equal(expectedUserUBELeft)
+  })
+
   it('Does not return the balance of the collateral and returns an error if not whitelisted', async () => {
     try {
       await minterContract.getTotalCollateralByCollateralAddress(
@@ -371,6 +359,26 @@ describe('Can call view functions from the contract', () => {
     }
   })
 
+  it('Does not return userBalance and teturns an error if the collateral address is not whitelisted', async () => {
+    try {
+      await minterContract.getUserTotalMintedTokensByCollateralAddress(
+        dumContract.address
+      )
+      assert(false, 'Error is not thrown')
+    } catch (err) {
+      expect(err.message).to.be.equal(
+        'VM Exception while processing transaction: revert Collateral address is not whitelisted.'
+      )
+    }
+  })
+
+  it('Can get the current conversion rate for the given collateral', async () => {
+    expect((await minterContract.getGCR()).toNumber()).to.be.greaterThan(
+      0,
+      'No position is created to compute GCR'
+    )
+  })
+
   it('Can get the current conversion rate for the given collateral', async () => {
     // Assuming there is a position created already
     expect(
@@ -378,13 +386,6 @@ describe('Can call view functions from the contract', () => {
     ).to.be.greaterThan(
       0,
       'No position is created to calculate conversion rate'
-    )
-  })
-
-  it('Can get the current conversion rate for the given collateral', async () => {
-    expect((await minterContract.getGCR()).toNumber()).to.be.greaterThan(
-      0,
-      'No position is created to compute GCR'
     )
   })
 
@@ -408,7 +409,7 @@ describe('Can call view functions from the contract', () => {
     )
   })
 
-  it('Can change the financial address if owner', async () => {
+  it('Can change the financial address as the contract adming', async () => {
     const dummyEmp = '0xc3E4EDA3c2Da722e7b143773EEd77249584B1782'
     const changeFinancialTx = await minterContract.setFinancialContractAddress(
       dummyEmp

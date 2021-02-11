@@ -111,7 +111,7 @@ contract Minter is Lockable {
     // FixedPoint.fromUnscaledUint converts ether value to wei
     FixedPoint.Unsigned memory collateral =
       FixedPoint.fromUnscaledUint(_collateralAmount).divCeil(decimalPadding);
-    // TODO: (2 - GCR)
+
     FixedPoint.Unsigned memory tokens = _tokensToMint(collateral);
 
     // Check if user has enough balance
@@ -212,8 +212,8 @@ contract Minter is Lockable {
       isWhitelisted(_collateralAddress) == true,
       'Collateral address is not whitelisted.'
     );
-    IERC20 token = ExpandedIERC20(_collateralAddress);
-    return token.balanceOf(address(this));
+
+    return emp.totalPositionCollateral().rawValue;
   }
 
   /**
@@ -253,13 +253,15 @@ contract Minter is Lockable {
   }
 
   /**
-   * Returns the latest conversion rate
+   * Returns the latest GCR
    */
   function getGCR() public view returns (uint256) {
-    FixedPoint.Unsigned memory gcrValue = _getGCRValue();
-    return gcrValue.rawValue;
+    return _getGCRValue().rawValue;
   }
 
+  /**
+   * Helper in converting tokens and collateral
+   */
   function getConversionRate() public view returns (uint256) {
     return _getGCRValue().rawValue + 1;
   }
