@@ -26,6 +26,7 @@ contract Minter is Lockable {
 
   // Enables the dApp to send upto 2 decimal points
   FixedPoint.Unsigned decimalPadding = FixedPoint.fromUnscaledUint(100);
+  uint256 private constant FP_SCALING_FACTOR = 10**18;
 
   // map collateralAddress balance to user
   mapping(address => mapping(address => CollateralPositions)) collateralBalances;
@@ -370,7 +371,9 @@ contract Minter is Lockable {
 
   function _getGCRValue() internal view returns (FixedPoint.Unsigned memory) {
     FixedPoint.Unsigned memory gcrValue =
-      emp.totalPositionCollateral().div(emp.totalTokensOutstanding());
+      emp.totalPositionCollateral().mul(FP_SCALING_FACTOR).div(
+        emp.totalTokensOutstanding()
+      );
 
     return gcrValue;
   }
@@ -379,13 +382,19 @@ contract Minter is Lockable {
     internal
     returns (FixedPoint.Unsigned memory)
   {
-    return _collateralAmount.div(_getGCRValue().rawValue);
+    return
+      _collateralAmount.mul(FP_SCALING_FACTOR).div(_getGCRValue().rawValue).div(
+        FP_SCALING_FACTOR
+      );
   }
 
   function _collateralToReceive(FixedPoint.Unsigned memory _numTokens)
     internal
     returns (FixedPoint.Unsigned memory)
   {
-    return _numTokens.mul(_getGCRValue().rawValue);
+    return
+      _numTokens.mul(FP_SCALING_FACTOR).mul(_getGCRValue().rawValue).div(
+        FP_SCALING_FACTOR
+      );
   }
 }
