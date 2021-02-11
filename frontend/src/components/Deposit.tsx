@@ -119,11 +119,11 @@ const Deposit = ({
       aria-labelledby="dialog-title"
       maxWidth="xs"
     >
-      <DialogTitle id="dialog-title">Mint PHM</DialogTitle>
+      <DialogTitle id="dialog-title">Mint UBE</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          To mint PHM, please deposit DAI as your collateral. We show a preview
-          of how much PHM can be minted for your DAI deposit.
+          To mint UBE, please deposit DAI as your collateral. We show a preview
+          of how much UBE can be minted for your DAI deposit.
         </DialogContentText>
         <Box mx={6} textAlign="center">
           <Grid container spacing={2} justify="center" alignItems="center">
@@ -157,8 +157,8 @@ const Deposit = ({
               <TextField
                 autoFocus
                 margin="dense"
-                id="phm"
-                label="PHM"
+                id="ube"
+                label="UBE"
                 type="number"
                 value={phmToBeMinted.toFixed(2)}
                 fullWidth

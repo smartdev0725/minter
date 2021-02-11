@@ -81,7 +81,7 @@ const intialCollateral = parseEther('100000')
 const expectedUserCollateralLeft = BigNumber.from(parseEther('1410'))
 const expectedUserUBELeft = BigNumber.from(parseEther('470'))
 
-// Value to be set after getting getConversionRate()
+// Value to be set after getting getGCR()
 let expectedUBE, expectedConvertedCollateral
 
 // single run per test setup

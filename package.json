@@ -5,10 +5,12 @@
   "main": "index.js",
   "scripts": {
     "compile": "npx hardhat compile",
+    "build:fe:dev": "cd frontend && REACT_APP_CHAIN_NETWORK=Kovan npm run build",
     "test": "npx hardhat test",
     "test:local": "npx hardhat --network localhost test",
     "deploy:local": "npx hardhat run scripts/deploy.ts --network \"localhost\"",
     "deploy:kovan": "npx hardhat run scripts/deploy.ts --network \"kovan\"",
+    "deploy:fe:dev": "npm run build:fe:dev && firebase deploy --only hosting:develop",
     "node": "npx hardhat node",
     "clean:modules": "rm -rf node_modules",
     "clean:contracts": "rm -rf artifacts && rm -rf cache",

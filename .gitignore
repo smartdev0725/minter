@@ -7,3 +7,5 @@ coverage*
 .env
 .DS_Store
 /readmeImages/.DS_Store
+.firebase/
+frontend/src/components/Deposit.tsx

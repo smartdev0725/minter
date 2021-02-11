@@ -26,9 +26,9 @@ export enum NetworkNames {
 }
 
 export enum Tokens {
-  ETH = 'ETH',
+  // ETH = 'ETH',
   DAI = 'DAI',
-  PHM = 'PHM'
+  UBE = 'UBE'
 }
 
 export enum ChainError {
