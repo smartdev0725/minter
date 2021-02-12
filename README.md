@@ -4,11 +4,16 @@
 
 # Setup environment variables
 
-1. Go to https://infura.io/ and make an account
-2. Paste the kovan project ID into your .env as the value for `INFURA_PROJECT_ID` key
-3. Generate a 12 word mnemonic seed phrase (can use ganache to get one or ask project admin for current seed used for remote envs)
-4. Paste 12 word mnemonic seed phrase as value for `MNEMONIC_SEED` key
-5. Go to https://alchemyapi.io/ and setup an account then take the api key for the relevant network (like mainnet, kovan or ropsten) or ask the team for an existing API key and paste under `ALCHEMY_KEY`
+1. Check `env.example` at project root and fill in corresonpding values on your local
+2. Go to https://infura.io/ and make an account
+3. Paste the kovan project ID into your .env as the value for `INFURA_PROJECT_ID` key
+4. Generate a 12 word mnemonic seed phrase (can use ganache to get one or ask project admin for current seed used for remote envs)
+5. Paste 12 word mnemonic seed phrase as value for `MNEMONIC_SEED` key
+6. Go to https://alchemyapi.io/ and setup an account then take the api key for the relevant network (like mainnet, kovan or ropsten) or ask the team for an existing API key and paste under `ALCHEMY_KEY`
+7. When setting up locally, under Quickstart - Step 6 paste the emp address as value to `FINANCIAL_CONTRACT_ADDRESS`
+8. When setting up locally, under Quickstart - Step 7, paste the `collateralToken.address` as value to `DAI_CONTRACT_ADDRESS`
+9. When setting up locally, under Quickstart - Step 8, paste the `syntheticToken.address` as value to `UBE_CONTRACT_ADDRESS`
+10. When setting up locally, paste `LOCALHOST` as value to `CHAIN_NETWORK`. Other values are `KOVAN` or `MAINNET` (we are not on other testnets atm)
 
 # Metamask
 
@@ -18,7 +23,7 @@
 ## Quickstart: Running local
 
 1. Setup UMA locally by running `git clone https://github.com/HaloDAO/protocol` and following the quick start steps in that repo
-2. Run the Ganache node using this command `npx ganache-cli -p 9545 -e 1000000 -l 10000000`
+2. Run the Ganache node using this command `npx ganache-cli -p 9545 -e 1000000 -l 10000000` (don't forget to note down the `account[0]` private key and wallet address somewhere)
 3. While still in the `protocol` project root, run `yarn truffle console --network test` to enter the truffle console.
 4. Run `migrate` to migrate UMA contract in local Ganache node inside the truffle console.
 5. Make an EMP following steps 3-8 [here](https://docs.umaproject.org/build-walkthrough/mint-locally#parameterize-and-deploy-a-contract)

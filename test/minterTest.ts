@@ -17,8 +17,6 @@ import {
   parseEther
 } from 'ethers/lib/utils'
 
-import { decodeTx } from 'ethereum-tx-decoder'
-
 /**
  * Assert vs expect vs should:
  * https://stackoverflow.com/questions/21396524/what-is-the-difference-between-assert-expect-and-should-in-chai#21405128
@@ -73,9 +71,15 @@ const collateralDepositNumber = BigNumber.from(`${collateralRawValue * 100}`) //
 const collateralToRedeemNumber = BigNumber.from(
   `${collateralToRedeemRawValue * 100}`
 ) // padded with 2 extra zeroes
-const empContractAddress = '0xe93194815959Fb5879daC1283b912AD78c3D13c3'
-const collateralAddressUMA = '0x25AF99b922857C37282f578F428CB7f34335B379'
-const ubeAddressUma = '0x55aec27A24933F075c6b178fb0DDD5346104E6f1'
+
+// CONTRACT ADDRESSES
+const empContractAddress = process.env.FINANCIAL_CONTRACT_ADDRESS
+const collateralAddressUMA = process.env.DAI_CONTRACT_ADDRESS
+const ubeAddressUma = process.env.UBE_CONTRACT_ADDRESS
+console.log('financialContractAddress: ', empContractAddress)
+console.log('collateralAddressUMA: ', collateralAddressUMA)
+console.log('ubeAddressUma: ', ubeAddressUma)
+
 const intialCollateral = parseEther('100000')
 
 const expectedUserCollateralLeft = BigNumber.from(parseEther('1410'))
