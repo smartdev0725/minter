@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "compile": "npx hardhat compile",
-    "build:fe:dev": "cd frontend && REACT_APP_CHAIN_NETWORK=Kovan npm run build",
+    "build:fe:dev": "cd frontend && REACT_APP_CHAIN_NETWORK=KOVAN npm run build",
     "test": "npx hardhat test",
     "test:local": "npx hardhat --network localhost test",
     "deploy:local": "npx hardhat run scripts/deploy.ts --network \"localhost\"",
