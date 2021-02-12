@@ -30,14 +30,13 @@
 6. Get the emp address by entering `emp.address`
 7. Create an instance of the collateral token to get its address. Run `const collateralToken = await TestnetERC20.deployed()` then `collateralToken.address`
 8. Create an instance of the synthetic token to get its address. Run `const syntheticToken = await SyntheticToken.at(await emp.tokenCurrency())` then `syntheticToken.address`
-9. Replace or add the addresses in the deploy script. `empContractAddress = {the emp address}`, `collateralAddressUMA = {collateralToken address}`, and `ubeAddressUma = {synthetic token address}`
-10. Open a new terminal window and run `git clone https://github.com/HaloDAO/minter && cd minter`
-11. run `npm i` to install backend dependencies
-12. run `npm run test:local` to run contract test suite to run smart contract test cases
-13. run `npm run deploy:local` to compile and deploy the Minter contract to the ganache node that UMA was deployed on
-14. cd to frontend `cd frontend`
-15. run `npm i` to install frontend dependencies
-16. run `npm start` to serve the app locally
+9. Open a new terminal window and run `git clone https://github.com/HaloDAO/minter && cd minter`
+10. run `npm i` to install backend dependencies
+11. run `npm run test:local` to run contract test suite to run smart contract test cases
+12. run `npm run deploy:local` to compile and deploy the Minter contract to the ganache node that UMA was deployed on
+13. cd to frontend `cd frontend`
+14. run `npm i` to install frontend dependencies
+15. run `npm start` to serve the app locally
 
 ## Environment Setup
 
