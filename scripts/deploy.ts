@@ -1,34 +1,35 @@
 import { artifacts, ethers } from 'hardhat'
 import * as fs from 'fs'
 import * as fse from 'fs-extra'
-import { TokenFactory } from '../typechain/TokenFactory'
-import { Contract, providers } from 'ethers'
-import { formatEther, parseEther } from 'ethers/lib/utils'
+import { Contract } from 'ethers'
+import { formatEther } from 'ethers/lib/utils'
 
 const main = async () => {
   const [deployer, testUser] = await ethers.getSigners()
 
-  console.log('Deploying contracts with the account:', deployer.address)
-  console.log('Account balance:', formatEther(await deployer.getBalance()))
+  console.log('Account 0 Deployer Address:', deployer.address)
+  console.log(
+    'Account 0 Deployer balance:',
+    formatEther(await deployer.getBalance())
+  )
 
-  // const wallet = await ethers.Wallet.fromMnemonic(process.env.MNEMONIC_SEED)
-  console.log('Account 1 test user address:', testUser.address)
+  console.log('Account 1 user address:', testUser.address)
 
   // CONTRACT ADDRESSES
   const financialContractAddress = process.env.FINANCIAL_CONTRACT_ADDRESS
   const collateralAddressUMA = process.env.DAI_CONTRACT_ADDRESS
   const ubeAddressUma = process.env.UBE_CONTRACT_ADDRESS
   console.log('financialContractAddress: ', financialContractAddress)
-  console.log('collateralAddressUMA: ', financialContractAddress)
-  console.log('ubeAddressUma: ', financialContractAddress)
+  console.log('collateralAddressUMA: ', collateralAddressUMA)
+  console.log('ubeAddressUma: ', ubeAddressUma)
 
   // Deploy Minter contract
   const minterFactory = await ethers.getContractFactory('Minter')
-  const collateralToken = await ethers.getContractAt(
-    'TestnetERC20',
-    collateralAddressUMA,
-    deployer
-  )
+  //   const collateralToken = await ethers.getContractAt(
+  //     'DAI',
+  //     collateralAddressUMA,
+  //     deployer
+  //   )
 
   let minterContract = await minterFactory.deploy(
     ubeAddressUma,
@@ -39,12 +40,16 @@ const main = async () => {
 
   // Initialize minter & add DAI collateral
   await minterContract.initialize()
+  console.log('minterContract initialised')
   await minterContract.addCollateralAddress(collateralAddressUMA)
+  console.log('DAI collateral added to minterContract')
 
   // Remove on kovan, added to compensate for conversion problems
   //await collateralToken.allocateTo(minterContract.address, parseEther('10000'))
 
-  console.log('Minter address: ', minterContract.address)
+  console.log(
+    'Minter address successfully deployed, initialised and collateral whitelisted'
+  )
 
   saveFrontendFiles(
     collateralAddressUMA,
