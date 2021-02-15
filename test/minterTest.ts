@@ -297,10 +297,6 @@ describe('Can redeem synth for original ERC20 collateral', async () => {
   })
 })
 
-describe('Can transfer synth to recipient wallet', () => {})
-describe('Can earn HALO upon synth mint', () => {})
-describe('Can earn HALO on transfer to whitelisted AMM address', () => {})
-
 describe('Can call view functions from the contract', () => {
   it('Get total collateral deposited to the financial contract of a collateral', async () => {
     expect(
