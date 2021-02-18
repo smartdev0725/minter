@@ -8,20 +8,8 @@ import {
   checkDepositEvent,
   checkWithdrawalEvent
 } from './util/CheckEvent'
-import { doesNotMatch } from 'assert'
-import {
-  base64,
-  formatEther,
-  hexlify,
-  parseBytes32String,
-  parseEther
-} from 'ethers/lib/utils'
 
-/**
- * Assert vs expect vs should:
- * https://stackoverflow.com/questions/21396524/what-is-the-difference-between-assert-expect-and-should-in-chai#21405128
- * we are going with expect for now
- */
+import { parseEther } from 'ethers/lib/utils'
 
 // Helper vars
 let accounts,
@@ -54,7 +42,8 @@ const nonCollateralTokenDetails = {
   decimals: '18'
 }
 
-// constants
+// Constant values
+
 /**
  * --RawValue: number in ether format
  * --Number: Padded decimal format
@@ -63,10 +52,13 @@ const nonCollateralTokenDetails = {
 
 const collateralRawValue = 1500
 const collateralToRedeemRawValue = 30
+const tokensRawValue = 500
 const collateralDeposit = BigNumber.from(parseEther(`${collateralRawValue}`)) // total collateral to be deposited
 const collateralToRedeem = BigNumber.from(
   parseEther(`${collateralToRedeemRawValue}`)
 )
+const tokensToMint = BigNumber.from(parseEther(`${tokensRawValue}`))
+const tokensToMintNumber = BigNumber.from(`${tokensRawValue * 100}`)
 const collateralDepositNumber = BigNumber.from(`${collateralRawValue * 100}`) // padded with 2 extra zeroes
 const collateralToRedeemNumber = BigNumber.from(
   `${collateralToRedeemRawValue * 100}`
@@ -76,17 +68,13 @@ const collateralToRedeemNumber = BigNumber.from(
 const empContractAddress = process.env.FINANCIAL_CONTRACT_ADDRESS
 const collateralAddressUMA = process.env.DAI_CONTRACT_ADDRESS
 const ubeAddressUma = process.env.UBE_CONTRACT_ADDRESS
-console.log('financialContractAddress: ', empContractAddress)
-console.log('collateralAddressUMA: ', collateralAddressUMA)
-console.log('ubeAddressUma: ', ubeAddressUma)
-
 const intialCollateral = parseEther('100000')
-
 const expectedUserCollateralLeft = BigNumber.from(parseEther('1410'))
 const expectedUserUBELeft = BigNumber.from(parseEther('470'))
 
-// Value to be set after getting getGCR()
-let expectedUBE, expectedConvertedCollateral
+console.log('financialContractAddress: ', empContractAddress)
+console.log('collateralAddressUMA: ', collateralAddressUMA)
+console.log('ubeAddressUma: ', ubeAddressUma)
 
 // single run per test setup
 before(async () => {
@@ -204,8 +192,8 @@ describe('Can accept collateral and mint synthetic', async () => {
     await daiContract.approve(minterContract.address, collateralDeposit)
     // deposit collateral to minter contract
     const depositTxn = await minterContract.depositByCollateralAddress(
-      BigNumber.from(`${1500 * 100}`),
-      BigNumber.from(`${500 * 100}`),
+      collateralDepositNumber,
+      tokensToMintNumber,
       collateralAddressUMA
     )
 
@@ -217,7 +205,7 @@ describe('Can accept collateral and mint synthetic', async () => {
         contractCreatorAccount.address,
         collateralAddressUMA,
         collateralDeposit,
-        BigNumber.from(parseEther('500'))
+        tokensToMint
       )
     ).to.be.true
   })
@@ -229,7 +217,7 @@ describe('Can accept collateral and mint synthetic', async () => {
     try {
       await minterContract.depositByCollateralAddress(
         collateralDeposit,
-        BigNumber.from(`${1500 * 100}`),
+        collateralDepositNumber,
         nonCollateralAddress
       )
       assert(false, 'Error is not thrown')
@@ -239,22 +227,6 @@ describe('Can accept collateral and mint synthetic', async () => {
       )
     }
   })
-  /*
-  it('deposit func should not mint UBE when msg.sender do not  have enough collateral balance and return error', async () => {
-    try {
-      await minterContract.depositByCollateralAddress(
-        parseEther('1230912309123091230192'),
-        BigNumber.from(`${1500 * 100}`),
-        collateralAddressUMA
-      )
-      assert(false, 'Error is not thrown')
-    } catch (err) {
-      expect(err.message).to.be.equal(
-        'VM Exception while processing transaction: revert Not enough collateral amount'
-      )
-    }
-  })
-  */
 })
 
 describe('Can redeem synth for original ERC20 collateral', async () => {
