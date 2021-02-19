@@ -16,21 +16,25 @@ export enum Networks {
 }
 
 export enum NetworkNames {
-  MAINNET = 'Mainnet',
-  KOVAN = 'Kovan',
-  ROPSTEN = 'Ropsten',
-  RINKEBY = 'Rinkeby',
-  GOERLI = 'Goerli',
-  LOCAL = 'localhost:8545',
-  UNKNOWN = 'Unknown Network'
+  MAINNET = 'MAINNET',
+  KOVAN = 'KOVAN',
+  ROPSTEN = 'ROPSTEN',
+  RINKEBY = 'RINKEBY',
+  GOERLI = 'GOERLI',
+  LOCAL = 'LOCALHOST:9545',
+  UNKNOWN = 'UNKNOWN NETWORK'
 }
 
 export enum Tokens {
-  ETH = 'ETH',
+  // ETH = 'ETH',
   DAI = 'DAI',
   UBE = 'UBE'
 }
 
 export enum ChainError {
   REJECTED = 4001
+}
+
+export enum ContractHelper {
+  DECIMALPADDING = 100
 }

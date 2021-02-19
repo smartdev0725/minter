@@ -2,70 +2,67 @@ import { artifacts, ethers } from 'hardhat'
 import * as fs from 'fs'
 import * as fse from 'fs-extra'
 import { Contract } from 'ethers'
-import { parseEther } from 'ethers/lib/utils'
+import { formatEther } from 'ethers/lib/utils'
 
 const main = async () => {
   const [deployer, testUser] = await ethers.getSigners()
 
-  console.log('Deploying contracts with the account:', deployer.address)
-  console.log('Account balance:', (await deployer.getBalance()).toString())
+  console.log('Account 0 Deployer Address:', deployer.address)
+  console.log(
+    'Account 0 Deployer balance:',
+    formatEther(await deployer.getBalance())
+  )
 
-  // const wallet = await ethers.Wallet.fromMnemonic(process.env.MNEMONIC_SEED)
-  console.log('Account 1 test user address:', testUser.address)
+  console.log('Account 1 user address:', testUser.address)
 
-  // Deploy dummy DAI contract
-  const daiFactory = await ethers.getContractFactory('ExpandedERC20')
-  let daiContract = await daiFactory.deploy('DAI', 'DAI', '18')
-  daiContract = await daiContract.deployed()
-  await daiContract.addMinter(deployer.address)
-  await daiContract.mint(testUser.address, parseEther('1000'))
-  console.log('daiContract created at address: ', daiContract.address)
-
-  // Deploy UBE contract (by deploying TokenFactory & calling TokenFactory.createToken())
-  const tokenFactory = await ethers.getContractFactory('TokenFactory')
-  let tokenContract = await tokenFactory.deploy()
-  tokenContract = await tokenContract.deployed()
-
-  const tx = await tokenContract.createToken('Mochi PH Token', 'UBE', '18')
-  const txReceiptEvent = (await tx.wait()).events.pop()
-  const ubeContract = (await ethers.getContractAt(
-    'ExpandedERC20',
-    txReceiptEvent.address,
-    deployer
-  )) as Contract
-  console.log('ubeContract created at address: ', ubeContract.address)
+  // CONTRACT ADDRESSES
+  const financialContractAddress = process.env.FINANCIAL_CONTRACT_ADDRESS
+  const collateralAddressUMA = process.env.DAI_CONTRACT_ADDRESS
+  const ubeAddressUma = process.env.UBE_CONTRACT_ADDRESS
+  console.log('financialContractAddress: ', financialContractAddress)
+  console.log('collateralAddressUMA: ', collateralAddressUMA)
+  console.log('ubeAddressUma: ', ubeAddressUma)
 
   // Deploy Minter contract
   const minterFactory = await ethers.getContractFactory('Minter')
-  let minterContract = await minterFactory.deploy(ubeContract.address)
+  //   const collateralToken = await ethers.getContractAt(
+  //     'DAI',
+  //     collateralAddressUMA,
+  //     deployer
+  //   )
+
+  let minterContract = await minterFactory.deploy(
+    ubeAddressUma,
+    financialContractAddress
+  )
   minterContract = await minterContract.deployed()
   console.log('minterContract created at address: ', minterContract.address)
 
   // Initialize minter & add DAI collateral
   await minterContract.initialize()
-  await minterContract.addCollateralAddress(daiContract.address)
+  console.log('minterContract initialised')
+  await minterContract.addCollateralAddress(collateralAddressUMA)
+  console.log('DAI collateral added to minterContract')
 
-  // Add minterContract as minter for DAI
-  await daiContract.addMinter(minterContract.address)
+  // Remove on kovan, added to compensate for conversion problems
+  //await collateralToken.allocateTo(minterContract.address, parseEther('10000'))
 
-  // Add minterContract as minter & burner for UBE
-  await ubeContract.addMinter(minterContract.address)
-  await ubeContract.addBurner(minterContract.address)
+  console.log(
+    'Minter address successfully deployed, initialised and collateral whitelisted'
+  )
 
-  // To be removed as well (moved to redeem function)
-  // await minterContract.approveCollateralSpend(
-  //   // to be removed as well
-  //   daiContract.address,
-  //   parseEther('100000')
-  // )
-
-  console.log('Contracts deployed & set up. Copying over to frontend...')
-  saveFrontendFiles(daiContract, ubeContract, minterContract)
+  saveFrontendFiles(
+    collateralAddressUMA,
+    ubeAddressUma,
+    financialContractAddress,
+    minterContract
+  )
 }
 
 const saveFrontendFiles = (
-  daiContract: Contract,
-  ubeContract: Contract,
+  daiContract: string,
+  phmContract: string,
+  perpetualContract: string,
   minterContract: Contract
 ) => {
   const contractsDir = __dirname + '/../frontend/src/contracts'
@@ -85,9 +82,10 @@ const saveFrontendFiles = (
     contractsDir + '/contract-address.json',
     JSON.stringify(
       {
-        DAI: daiContract.address,
-        UBE: ubeContract.address,
-        Minter: minterContract.address
+        DAI: daiContract,
+        UBE: phmContract,
+        Minter: minterContract.address,
+        PerpetualContract: perpetualContract
       },
       null,
       2
@@ -111,6 +109,12 @@ const saveFrontendFiles = (
   fs.writeFileSync(
     contractsDir + '/Minter.json',
     JSON.stringify(MinterArtifact, null, 2)
+  )
+
+  const PerpetualArtifact = artifacts.readArtifactSync('Perpetual')
+  fs.writeFileSync(
+    contractsDir + '/Perpetual.json',
+    JSON.stringify(PerpetualArtifact, null, 2)
   )
 
   // Copy typechain to /frontend/src/typechain directory

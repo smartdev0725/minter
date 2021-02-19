@@ -18,9 +18,10 @@ import NotConnected from './components/NotConnected'
 import contractAddressObject from './contracts/contract-address.json'
 import UBEArtifact from './contracts/UBE.json'
 import DAIArtifact from './contracts/DAI.json'
+import PerpetualArtifact from './contracts/Perpetual.json'
 import MinterArtifact from './contracts/Minter.json'
 import { ethers } from 'ethers'
-import { ExpandedIERC20, Minter } from './typechain'
+import { ExpandedIERC20, Minter, Perpetual } from './typechain'
 import { bigNumberToFloat, formatBalance } from './utils/StringUtils'
 import InvalidNetwork from './components/InvalidNetwork'
 import AddressAndBalance from './components/AddressAndBalance'
@@ -28,6 +29,8 @@ import { Alert } from '@material-ui/lab'
 import { useSnackbar } from 'notistack'
 import { Balances } from './config/types'
 import Redeem from './components/Redeem'
+
+console.log('contractAddressObject:', contractAddressObject)
 
 declare global {
   interface Window {
@@ -47,7 +50,7 @@ const web3Modal = new Web3Modal({
            * The RPC URL mapping should be indexed by chainId and it requires at least one value
            * ChainId's: Mainnet (1), Ropsten (3), Rinkeby(4), Goerli (5) and Kovan (42)
            **/
-          1: 'http://localhost:8545'
+          1: 'http://localhost:9545'
         }
       }
     }
@@ -69,7 +72,7 @@ const App = () => {
       : NetworkNames.UNKNOWN
   )
   const [userAddress, setUserAddress] = useState<string>()
-  const [balances, setBalances] = useState<Balances>({ ETH: 0, DAI: 0, UBE: 0 })
+  const [balances, setBalances] = useState<Balances>({ DAI: 0, UBE: 0 })
   const [conversionRate, setConversionRate] = useState(0)
   const [showDepositModal, setShowDepositModal] = useState(false)
   const [showRedeemModal, setShowRedeemModal] = useState(false)
@@ -79,6 +82,7 @@ const App = () => {
   const [phmTotalSupply, setPhmTotalSupply] = useState(0)
   const [phmContract, setPhmContract] = useState<ExpandedIERC20>()
   const [daiContract, setDaiContract] = useState<ExpandedIERC20>()
+  const [perpetualContract, setPerpetualContract] = useState<Perpetual>()
   const [minterContract, setMinterContract] = useState<Minter>()
   const { enqueueSnackbar } = useSnackbar()
 
@@ -101,9 +105,9 @@ const App = () => {
       console.log('user address:', address)
       setUserAddress(address)
 
-      const bal = await injectedProvider.getBalance(address)
-      console.log('ETH balance:', bal)
-      setBalances({ ...balances, ETH: bigNumberToFloat(bal) })
+      // const bal = await injectedProvider.getBalance(address)
+      // console.log('ETH balance:', bal)
+      // setBalances({ ...balances, ETH: bigNumberToFloat(bal) })
     }
 
     const initContracts = () => {
@@ -135,6 +139,14 @@ const App = () => {
         injectedProvider.getSigner()
       ) as Minter
       setMinterContract(mContract)
+
+      const perpContract = new ethers.Contract(
+        contractAddressObject.PerpetualContract,
+        PerpetualArtifact.abi,
+        injectedProvider.getSigner()
+      ) as Perpetual
+
+      setPerpetualContract(perpContract)
     }
 
     getUserAddressAndBalance().then(initContracts)
@@ -148,9 +160,9 @@ const App = () => {
     if (!minterContract || !daiContract) return
 
     const getConversionRate = async () => {
-      const rate = await minterContract.getConversionRate(daiContract.address)
-      console.log('Conversion rate:', rate.toNumber())
-      setConversionRate(rate.toNumber())
+      const rate = await minterContract.getGCR()
+      console.log('Conversion rate/GCR:', rate)
+      setConversionRate(bigNumberToFloat(rate))
     }
 
     getConversionRate()
@@ -181,7 +193,7 @@ const App = () => {
 
     setInjectedProvider(undefined)
     setUserAddress(undefined)
-    setBalances({ ETH: 0, UBE: 0, DAI: 0 })
+    setBalances({ UBE: 0, DAI: 0 })
   }
 
   const watch = (provider: any) => {
@@ -241,6 +253,7 @@ const App = () => {
         conversionRate={conversionRate}
         minterContract={minterContract}
         collateralContract={daiContract}
+        perpetualContract={perpetualContract}
         onDepositSuccessful={() => {
           enqueueSnackbar('UBE successfully minted!', { variant: 'success' })
           refreshBalances()

@@ -1,50 +1,62 @@
+# Setup checklist
+
+[ ] Clone UMA protocol from [here](https://github.com/HaloDAO/protocol)
+
 # Setup environment variables
 
-1. Go to https://infura.io/ and make an account
-2. Paste the kovan project ID into your .env as the value for `INFURA_PROJECT_ID` key
-3. Generate a 12 word mnemonic seed phrase (can use ganache to get one or ask project admin for current seed used for remote envs)
-4. Paste 12 word mnemonic seed phrase as value for `MNEMONIC_SEED` key
-5. Go to https://alchemyapi.io/ and setup an account then take the api key for the relevant network (like mainnet, kovan or ropsten) or ask the team for an existing API key and paste under `ALCHEMY_KEY`
+1. Check `env.example` at project root and fill in corresonpding values on your local
+2. Go to https://infura.io/ and make an account
+3. Paste the kovan project ID into your .env as the value for `INFURA_PROJECT_ID` key
+4. Generate a 12 word mnemonic seed phrase (can use ganache to get one or ask project admin for current seed used for remote envs)
+5. Paste 12 word mnemonic seed phrase as value for `MNEMONIC_SEED` key
+6. Go to https://alchemyapi.io/ and setup an account then take the api key for the relevant network (like mainnet, kovan or ropsten) or ask the team for an existing API key and paste under `ALCHEMY_KEY`
+7. When setting up locally, under Quickstart - Step 6 paste the emp address as value to `FINANCIAL_CONTRACT_ADDRESS`
+8. When setting up locally, under Quickstart - Step 7, paste the `collateralToken.address` as value to `DAI_CONTRACT_ADDRESS`
+9. When setting up locally, under Quickstart - Step 8, paste the `syntheticToken.address` as value to `UBE_CONTRACT_ADDRESS`
+10. When setting up locally, paste `LOCALHOST` as value to `CHAIN_NETWORK`. Other values are `KOVAN` or `MAINNET` (we are not on other testnets atm)
 
 # Metamask
 
 1. Be sure to have metamask plugin installed in your browser (recommended browser is Chrome)
-2. Login to Metamask and point the network to localhost and port 8545 before starting the frontend app
+2. Login to Metamask and point the network to localhost and port 9545 before starting the frontend app
 
-## Quickstart
+## Quickstart: Running local
 
-1. Run `git clone https://bitbucket.org/bigmochi/dapp-boilerplate && cd dapp-boilerplate`
-2. run `npm i` to install backend dependencies (or just run `npm start` to skip steps 3,4,5 and 8)
-3. Run `npm run compile` to generate typchain typings (skip if you ran `npm start` at #2)
-4. run `npm test` to run contract test suite to run smart contract test cases (skip if you ran `npm start` at #2)
-5. run `npm run node` to start the hardhat evm chain (skip if you ran `npm start` at #2)
-6. on another terminal, run `npm run deploy:local` to compile and deploy locally (deploy script copies the contract artifact & typechain to frontend)
-7. cd to frontend `cd frontend`
-8. run `npm i` to install frontend dependencies (skip if you ran `npm start` at #2)
-9. run `npm start` to serve the app locally
-10. React app should print the token contract name, total supply, current network (unknown if local) and contract address.
+1. Setup UMA locally by running `git clone https://github.com/HaloDAO/protocol` and following the quick start steps in that repo
+2. Run the Ganache node using this command `npx ganache-cli -p 9545 -e 1000000 -l 10000000` (don't forget to note down the `account[0]` private key and wallet address somewhere)
+3. While still in the `protocol` project root, run `yarn truffle console --network test` to enter the truffle console.
+4. Run `migrate` to migrate UMA contract in local Ganache node inside the truffle console.
+5. Make an EMP following steps 3-8 [here](https://docs.umaproject.org/build-walkthrough/mint-locally#parameterize-and-deploy-a-contract)
+6. Get the emp address by entering `emp.address`
+7. Create an instance of the collateral token to get its address. Run `const collateralToken = await TestnetERC20.deployed()` then `collateralToken.address`
+8. Create an instance of the synthetic token to get its address. Run `const syntheticToken = await SyntheticToken.at(await emp.tokenCurrency())` then `syntheticToken.address`
+9. Open a new terminal window and run `git clone https://github.com/HaloDAO/minter && cd minter`
+10. run `npm i` to install backend dependencies
+11. run `npm run test:local` to run contract test suite to run smart contract test cases
+12. run `npm run deploy:local` to compile and deploy the Minter contract to the ganache node that UMA was deployed on
+13. cd to frontend `cd frontend`
+14. run `npm i` to install frontend dependencies
+15. run `npm start` to serve the app locally
 
 ## Environment Setup
 
 #### Quickstart Setup
 
 - [ ] Install all dependencies
-- [ ] Deployed a local ethereum network with HardHat Nework
+- [ ] Deployed a local ethereum network with Ganache on the uma protocol/ protocol folder
 - [ ] Compliled and deployed smart contract to the blockchain
 - [ ] Contract artifact and typechain is auto generated in the front end folder
 
 #### Terminal Setup Checklist
 
-- [ ] Terminal 1 - React Front End for the dapp \
-       ![React server](./readmeImages/1.png)
-- [ ] Terminal 2 - For local development: Hardhat network / Ganache depoloyed in port 8545, debugging in the blockchain
-- [ ] Terminal 3 (Optional) - Use to deploy new version of the smart contract in the blockchain after configuring it
-      ![React server](./readmeImages/2.png)
+- [ ] Terminal 1 - React Front End for the dapp
+- [ ] Terminal 2 - Ganache node deploy from the uma protocol folder
+- [ ] Terminal 3 (Optional) - Truffle console to migrate and interact with the UMA Contracts in local
 
 #### Dapp Setup Checklist
 
-- [ ] Deploy a local ethereum network with hardhat network or ganache / determine test network to test
-- [ ] Metamask set to the network you are developing to (localhost:8545 for local, testnet of choice)
+- [ ] Deploy the local ganache inside the uma protocol
+- [ ] Metamask set to the network you are developing to (localhost:9545 for local, testnet of choice)
 - [ ] Run a local react server
 
 #### Smart Contract Development Setup Checklist
@@ -57,33 +69,26 @@
 
 1. Ensure you have added the following env variables: INFURA_PROJECT_ID and MNEMONIC SEED
 2. Make sure the account in your mnemonic seed has enough balance to deploy the contract
-3. Run `npm test` to ensure all tests are passing
-4. If tests are passing, deploy the code by running `npm run deploy:kovan`
-5. The token address should be shown in the console.
-6. Run your dApp: `cd frontend && npm run start`
-7. Change your metamask network to Kovan
-8. The token details, network name (Kovan in this case) and contract address should be displayed in the UI
+3. Run `npm run test:local` to ensure all tests are passing (make sure you have the setup your local environment first)
+4. If tests are passing, check deploy.ts if the addresses are pointed to kovan.
+5. If all addresses are on kovan, deploy the code by running `npm run deploy:kovan`
+6. The minter address should appear in the console.
+7. Run the dApp: `cd frontend && npm run start`
+8. Change your metamask network to Kovan
+9. The minter dApp UI should load
 
 #### Local developlment: How to update the smart contract code w/ hot reloading
 
-1. Do updates in the smart contract solidity code in the contracts folder located in root
-2. Add tests in the test folder when necessary
-3. Run `npm test`
-4. If tests are passing, deploy the code by running `npm run deploy:local`
-5. If successful, the front end dApp should reload and smart contract changes can be read/utilized by the dApp.
-
-#### Testnet development: How to update the smart contract code w/ hot reloading
-
-1. Do updates in the smart contract solidity code in the contracts folder located in root
-2. Add tests in the test folder when necessary
-3. Run `npm test`
-4. If tests are passing, deploy the code by running `npm run deploy:kovan`
-5. If successful, the front end dApp should reload and smart contract changes can be read/utilized by the dApp.
+1. Ensure your local environment has been set up (ganache node, truffle console)
+2. Do updates in the smart contract solidity code in the contracts folder located in root
+3. Add tests in the test folder when necessary
+4. Run `npm run test:local`
+5. If tests are passing, deploy the code by running `npm run deploy:local`
+6. If successful, the front end dApp should reload and smart contract changes can be read/utilized by the dApp.
 
 #### Resources
 
 [HardHat Documentation](https://hardhat.org/getting-started/) - Hardhat tutorials, config, network, and plugin references
-[scaffold-eth speeeeedrun](https://www.youtube.com/watch?v=eUAc2FtC0_s) - Similar workflow we can use in working with this boilerplate. Our boilerplate seemed to be an improved typescript version of this stack.
 
 ## Troubleshooting
 
@@ -96,3 +101,6 @@
 - Compile and deploy your contract first. Run `npm run deploy:local` for local deployments.
 
 3. If you get `ProviderError: Must be authenticated!` or https://hardhat.org/errors/#HH604 then make sure you've entered a key and value in `.env` for `ALCHEMY_KEY`
+4. If you've accidentally started a background process for a node then you can use `sudo lsof -i :<port number>` to find the PID then kill it using `kill -9 <PID>` (from https://stackoverflow.com/questions/3855127/find-and-kill-process-locking-port-3000-on-mac)
+
+5. UMA tests don't run due to `No tests configured` err: try `npm uninstall -g ganache-cli`, make sure `yarn ganache-cli --version` returns `Ganache CLI v6.12.2 (ganache-core: 2.13.2)` (or the same version as specified in `protocol` repo's root package.json) then run `yarn test` again

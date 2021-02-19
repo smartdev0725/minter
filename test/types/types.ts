@@ -26,10 +26,15 @@ type BurnEvent = {
   value: number
 }
 
+type ChangedFinancialContractAddressEvent = {
+  newFinancialContractAddress: string
+}
+
 export type {
   TokenDetails,
   DepositedCollateralEvent,
   WithdrawnCollateralEvent,
   MintEvent,
-  BurnEvent
+  BurnEvent,
+  ChangedFinancialContractAddressEvent
 }

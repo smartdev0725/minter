@@ -14,9 +14,9 @@ import {
   CircularProgress
 } from '@material-ui/core'
 import SwapVertIcon from '@material-ui/icons/SwapVert'
-import { ExpandedIERC20, Minter } from '../typechain'
+import { ExpandedIERC20, Minter, Perpetual } from '../typechain'
 import contractAddressObject from '../contracts/contract-address.json'
-import { ChainError } from '../config/enums'
+import { ChainError, ContractHelper } from '../config/enums'
 import { parseEther } from 'ethers/lib/utils'
 import { formatBalance } from '../utils/StringUtils'
 
@@ -39,6 +39,7 @@ interface DepositProps {
   daiBalance: number
   conversionRate: number
   minterContract?: Minter
+  perpetualContract?: Perpetual
   collateralContract?: ExpandedIERC20
   onDepositSuccessful: () => void
   onDepositRejected: () => void
@@ -51,6 +52,7 @@ const Deposit = ({
   conversionRate,
   minterContract,
   collateralContract,
+  perpetualContract,
   onDepositSuccessful,
   onDepositRejected
 }: DepositProps) => {
@@ -62,7 +64,7 @@ const Deposit = ({
   const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
-    setPhmToBeMinted(daiDeposit * conversionRate)
+    //setPhmToBeMinted(daiDeposit / conversionRate)
 
     if (daiDeposit > 0 && daiDeposit <= daiBalance) {
       setCanDeposit(true)
@@ -78,21 +80,23 @@ const Deposit = ({
   }, [daiDeposit, conversionRate, daiBalance])
 
   const deposit = async () => {
-    if (!minterContract || !collateralContract) return onClose()
+    if (!minterContract || !collateralContract || !perpetualContract)
+      return onClose()
 
     setIsProcessing(true)
 
     try {
       const amount = parseEther(`${daiDeposit}`)
 
+      // 0.1 -  approve transfer from msg.sender to minter
       await collateralContract.approve(contractAddressObject.Minter, amount)
-      console.log('Approved spend collateral tokens')
 
+      // 1- deposit collateral
       const tx = await minterContract.depositByCollateralAddress(
-        amount,
+        (daiDeposit * ContractHelper.DECIMALPADDING).toFixed(0),
+        (phmToBeMinted * ContractHelper.DECIMALPADDING).toFixed(0),
         contractAddressObject.DAI
       )
-      console.log('Deposited collateral tokens')
 
       const res = await tx.wait()
       console.log('Tx result:', res)
@@ -155,9 +159,11 @@ const Deposit = ({
                 id="ube"
                 label="UBE"
                 type="number"
-                value={phmToBeMinted.toFixed(2)}
+                value={phmToBeMinted}
+                onChange={(e) => {
+                  setPhmToBeMinted(parseFloat(e.currentTarget.value))
+                }}
                 fullWidth
-                disabled
               />
             </Grid>
           </Grid>
