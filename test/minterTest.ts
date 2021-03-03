@@ -8,15 +8,27 @@ import {
   checkDepositEvent,
   checkWithdrawalEvent
 } from './util/CheckEvent'
-
 import { parseEther } from 'ethers/lib/utils'
 
+// CONTRACT ADDRESSES
+let empContractAddress: string
+let collateralAddressUMA: string
+let ubeAddressUma: string
+
+const network = process.env.CHAIN_NETWORK
+
+// For Kovan & Mainnet, get contract addresses from env (as they already exists in the chain)
+if (network.toLowerCase() !== 'localhost') {
+  empContractAddress = process.env.FINANCIAL_CONTRACT_ADDRESS
+  collateralAddressUMA = process.env.DAI_CONTRACT_ADDRESS
+  ubeAddressUma = process.env.UBE_CONTRACT_ADDRESS
+  console.log('financialContractAddress: ', empContractAddress)
+  console.log('collateralAddressUMA: ', collateralAddressUMA)
+  console.log('ubeAddressUma: ', ubeAddressUma)
+}
+
 // Helper vars
-let accounts,
-  otherUserAddress: string,
-  userAddress: SignerWithAddress,
-  collateralAddress: string,
-  nonCollateralAddress: string,
+let nonCollateralAddress: string,
   expandedERC20LabelString: string = 'ExpandedERC20',
   // name not as impt, since does not have an artifact to reference since auto deployed by TokenFactory
   ubeContractLabelString: string = 'SyntheticToken',
@@ -43,13 +55,6 @@ const nonCollateralTokenDetails = {
 }
 
 // Constant values
-
-/**
- * --RawValue: number in ether format
- * --Number: Padded decimal format
- * --no suffix: wei format
- */
-
 const collateralRawValue = 1500
 const collateralToRedeemRawValue = 30
 const tokensRawValue = 500
@@ -64,25 +69,130 @@ const collateralToRedeemNumber = BigNumber.from(
   `${collateralToRedeemRawValue * 100}`
 ) // padded with 2 extra zeroes
 
-// CONTRACT ADDRESSES
-const empContractAddress = process.env.FINANCIAL_CONTRACT_ADDRESS
-const collateralAddressUMA = process.env.DAI_CONTRACT_ADDRESS
-const ubeAddressUma = process.env.UBE_CONTRACT_ADDRESS
 const intialCollateral = parseEther('100000')
 const expectedUserCollateralLeft = BigNumber.from(parseEther('1410'))
 const expectedUserUBELeft = BigNumber.from(parseEther('470'))
 
-console.log('financialContractAddress: ', empContractAddress)
-console.log('collateralAddressUMA: ', collateralAddressUMA)
-console.log('ubeAddressUma: ', ubeAddressUma)
-
 // single run per test setup
 before(async () => {
-  // define signers
-  accounts = await ethers.getSigners()
+  const accounts = await ethers.getSigners()
   contractCreatorAccount = accounts[0]
-  userAddress = accounts[1]
-  otherUserAddress = accounts[2]
+
+  if (network.toLowerCase() === 'localhost') {
+    /**
+     * UMA setup for localhost testing
+     *
+     * We need to go through the process of deploying a UMA EMP as described here:
+     * https://docs.umaproject.org/build-walkthrough/mint-locally
+     */
+    it('Can deploy and get ref to UMA contracts', async () => {
+      const umaContractAddresses = require('./uma-contract-address.json')
+      const collateralAddress = umaContractAddresses['TestnetERC20']
+
+      /**
+       * 1. Create an instance of the ExpiringMultiParty creator (the contract factory
+       * for synthetic tokens)
+       */
+      const empCreator = await ethers.getContractAt(
+        'ExpiringMultiPartyCreator',
+        umaContractAddresses['ExpiringMultiPartyCreator']
+      )
+
+      /**
+       * 2. Define the parameters for the synthetic tokens you would like to create
+       */
+      const constructorParams = {
+        expirationTimestamp: '1706780800',
+        collateralAddress: collateralAddress,
+        priceFeedIdentifier: ethers.utils.formatBytes32String('PHPDAI'),
+        syntheticName: 'UBE Synthetic Token',
+        syntheticSymbol: 'UBE',
+        collateralRequirement: { rawValue: ethers.utils.parseEther('1.5') },
+        disputeBondPercentage: { rawValue: ethers.utils.parseEther('0.1') },
+        sponsorDisputeRewardPercentage: {
+          rawValue: ethers.utils.parseEther('0.1')
+        },
+        disputerDisputeRewardPercentage: {
+          rawValue: ethers.utils.parseEther('0.1')
+        },
+        minSponsorTokens: { rawValue: '100000000000000' },
+        timerAddress: umaContractAddresses['Timer'],
+        withdrawalLiveness: 7200,
+        liquidationLiveness: 7200,
+        excessTokenBeneficiary: '0x0000000000000000000000000000000000000000',
+        financialProductLibraryAddress:
+          '0x0000000000000000000000000000000000000000'
+      }
+
+      /**
+       * 3. Before the contract for the synthetic tokens can be created, the price
+       * identifier for the synthetic tokens must be registered with IdentifierWhitelist.
+       * This is important to ensure that the UMA DVM can resolve any disputes for these
+       * synthetic tokens.
+       */
+      const idWhitelist = await ethers.getContractAt(
+        'IdentifierWhitelist',
+        umaContractAddresses['IdentifierWhitelist']
+      )
+      await idWhitelist.addSupportedIdentifier(
+        constructorParams.priceFeedIdentifier
+      )
+      console.log('step 3 done')
+
+      /**
+       * 4. We also need to register the empCreator factory with the registry to give
+       * it permission to create new ExpiringMultiParty (EMP) synthetic tokens.
+       */
+      const registry = await ethers.getContractAt(
+        'Registry',
+        umaContractAddresses['Registry']
+      )
+      await registry.addMember(1, empCreator.address)
+      console.log('step 4 done')
+
+      /**
+       * 5. We also need to register the collateral token with the collateralTokenWhitelist.
+       */
+      const addressWhitelist = await ethers.getContractAt(
+        'AddressWhitelist',
+        umaContractAddresses['AddressWhitelist']
+      )
+      await addressWhitelist.addToWhitelist(collateralAddress)
+      console.log('step 5 done')
+
+      /**
+       * 6. Now, we can create a new ExpiringMultiParty synthetic token with the factory instance.
+       */
+      const txResult = await empCreator.createExpiringMultiParty(
+        constructorParams
+      )
+
+      // Execute txResult.wait() in able to see the logs/events
+      const receipt = await txResult.wait()
+
+      // Filter the events, to find the EMP address
+      let empAddress: string
+      for (const event of receipt.events) {
+        if (event.event === 'CreatedExpiringMultiParty') {
+          empAddress = event.args.expiringMultiPartyAddress
+          break
+        }
+      }
+
+      const expiringMultiParty = await ethers.getContractAt(
+        'ExpiringMultiParty',
+        empAddress
+      )
+
+      // Assign addresses to our variables
+      empContractAddress = expiringMultiParty.address
+      collateralAddressUMA = collateralAddress
+      ubeAddressUma = await expiringMultiParty.tokenCurrency()
+      console.log('financialContractAddress: ', empContractAddress)
+      console.log('collateralAddressUMA: ', collateralAddressUMA)
+      console.log('ubeAddressUma: ', ubeAddressUma)
+    })
+  }
 })
 
 describe('should delpoy and get references of needed contracts from the blockchain', async () => {
