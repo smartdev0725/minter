@@ -9,3 +9,4 @@ coverage*
 /readmeImages/.DS_Store
 .firebase/
 frontend/src/components/Deposit.tsx
+test/uma-contract-address.json
